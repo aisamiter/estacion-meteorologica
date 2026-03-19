@@ -1,0 +1,55 @@
+name: API Health Check
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # Daily at 12:00 UTC (9:00 AM Buenos Aires)
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Open-Meteo API
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.open-meteo.com/v1/forecast?latitude=-34.6&longitude=-58.4&current=temperature_2m")
+          if [ "$STATUS" != "200" ]; then
+            echo "Open-Meteo API returned $STATUS"
+            exit 1
+          fi
+          echo "Open-Meteo API: OK ($STATUS)"
+
+      - name: Check GOES-19 Satellite Image
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L "https://cdn.star.nesdis.noaa.gov/GOES19/ABI/SECTOR/ssa/GEOCOLOR/thumbnail.jpg")
+          if [ "$STATUS" != "200" ]; then
+            echo "GOES-19 satellite returned $STATUS"
+            exit 1
+          fi
+          echo "GOES-19 Satellite: OK ($STATUS)"
+
+      - name: Check Air Quality API
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=-34.6&longitude=-58.4&current=european_aqi")
+          if [ "$STATUS" != "200" ]; then
+            echo "Air Quality API returned $STATUS"
+            exit 1
+          fi
+          echo "Air Quality API: OK ($STATUS)"
+
+      - name: Check RainViewer API
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://api.rainviewer.com/public/weather-maps.json")
+          if [ "$STATUS" != "200" ]; then
+            echo "RainViewer API returned $STATUS"
+            exit 1
+          fi
+          echo "RainViewer API: OK ($STATUS)"
+
+      - name: Check GitHub Pages is live
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://aisamiter.github.io/estacion-meteorologica/")
+          if [ "$STATUS" != "200" ]; then
+            echo "GitHub Pages returned $STATUS"
+            exit 1
+          fi
+          echo "GitHub Pages: OK ($STATUS)"
