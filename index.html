@@ -409,6 +409,52 @@
       color: #3377ee;
     }
 
+    /* ===== ALERT BANNER ===== */
+    .alert-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      display: none;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.6rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-align: center;
+      font-family: 'Exo 2', sans-serif;
+      animation: alert-scroll 12s linear infinite;
+      white-space: nowrap;
+    }
+
+    .alert-banner.visible { display: block; }
+
+    .alert-banner.warn {
+      background: linear-gradient(90deg, rgba(255,136,0,0.15), rgba(255,136,0,0.25), rgba(255,136,0,0.15));
+      color: var(--orange);
+      border-bottom: 1px solid rgba(255,136,0,0.3);
+    }
+
+    .alert-banner.danger {
+      background: linear-gradient(90deg, rgba(255,34,68,0.15), rgba(255,34,68,0.25), rgba(255,34,68,0.15));
+      color: var(--red);
+      border-bottom: 1px solid rgba(255,34,68,0.3);
+    }
+
+    @keyframes alert-scroll {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
+    /* ===== NIGHT MODE ===== */
+    body.night-mode {
+      filter: brightness(0.5);
+    }
+
+    body.night-mode .fullscreen-prompt {
+      filter: brightness(2); /* compensate so prompt is still readable */
+    }
+
     /* ===== SOURCE INDICATOR ===== */
     .source-indicator {
       position: fixed;
@@ -623,6 +669,9 @@
 
   </div>
 
+  <!-- Alert banner -->
+  <div class="alert-banner" id="alertBanner"></div>
+
   <!-- Source indicator -->
   <div class="source-indicator">
     <span class="dot" id="statusDot"></span>
@@ -783,6 +832,7 @@
         state.weatherData = data;
         state.lastFetch = new Date();
         updateAllWidgets(data);
+        checkAlerts(data);
         setOnlineStatus(true);
       } catch (err) {
         console.error('Error fetching weather:', err);
@@ -1122,6 +1172,63 @@
       }
     }
 
+    // ===== SMART ALERTS =====
+    function checkAlerts(data) {
+      var alerts = [];
+      var c = data.current;
+      var d = data.daily;
+
+      // Storm alert (weather codes 95-99)
+      if (c.weather_code >= 95) {
+        alerts.push({ level: 'danger', text: '\u26A0 TORMENTA ELECTRICA EN CURSO' });
+      }
+      // Heavy rain (codes 65, 82)
+      if (c.weather_code === 65 || c.weather_code === 82) {
+        alerts.push({ level: 'warn', text: '\uD83C\uDF27 LLUVIA INTENSA EN CURSO' });
+      }
+      // Heat alert: temp > 35
+      if (c.temperature_2m > 35) {
+        alerts.push({ level: 'danger', text: '\uD83C\uDF21 ALERTA CALOR: ' + Math.round(c.temperature_2m) + '\u00B0C' });
+      }
+      // Extreme UV > 8
+      if (c.uv_index > 8) {
+        alerts.push({ level: 'warn', text: '\u2600 UV EXTREMO: ' + Math.round(c.uv_index) + ' \u2014 Evitar exposicion' });
+      }
+      // Strong wind > 50 km/h
+      if (c.wind_speed_10m > 50) {
+        alerts.push({ level: 'warn', text: '\uD83C\uDF2C VIENTO FUERTE: ' + Math.round(c.wind_speed_10m) + ' km/h' });
+      }
+      // Tomorrow storm forecast (codes 95-99 in daily)
+      if (d.weather_code.length > 1 && d.weather_code[1] >= 95) {
+        alerts.push({ level: 'warn', text: '\u26C8 TORMENTA PRONOSTICADA PARA MA\u00D1ANA' });
+      }
+      // Tomorrow high rain probability > 80%
+      if (d.precipitation_probability_max.length > 1 && d.precipitation_probability_max[1] > 80) {
+        alerts.push({ level: 'warn', text: '\uD83C\uDF27 MA\u00D1ANA: ' + d.precipitation_probability_max[1] + '% prob. lluvia' });
+      }
+
+      var banner = document.getElementById('alertBanner');
+      if (alerts.length > 0) {
+        // Show highest priority alert
+        var top = alerts[0];
+        banner.textContent = top.text;
+        banner.className = 'alert-banner visible ' + top.level;
+      } else {
+        banner.className = 'alert-banner';
+      }
+    }
+
+    // ===== NIGHT MODE =====
+    function updateNightMode() {
+      var hour = new Date().getHours();
+      var isNight = hour >= 23 || hour < 7;
+      if (isNight) {
+        document.body.classList.add('night-mode');
+      } else {
+        document.body.classList.remove('night-mode');
+      }
+    }
+
     // ===== STATUS =====
     function setOnlineStatus(online) {
       const dot = document.getElementById('statusDot');
@@ -1175,7 +1282,10 @@
       });
 
       updateClock();
+      updateNightMode();
       setInterval(updateClock, 1000);
+      // Check night mode every minute
+      setInterval(updateNightMode, 60 * 1000);
 
       await fetchWeather();
       fetchAirQuality();
