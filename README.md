@@ -5,6 +5,8 @@
 
 Dashboard meteorologico en tiempo real para Buenos Aires, corriendo en un Samsung A72 como pantalla dedicada de escritorio.
 
+![Samsung A72 running the weather dashboard](demo.jpg)
+
 **[Ver en vivo](https://aisamiter.github.io/estacion-meteorologica/)**
 
 ## Features
