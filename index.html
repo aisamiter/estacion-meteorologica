@@ -85,18 +85,14 @@
     #widgetTemp { grid-row: 1; grid-column: 2; }
     #widgetHumid { grid-row: 1; grid-column: 3; }
     #widgetCam { grid-row: 1; grid-column: 4; }
-    /* Row 2: Wind | UV | Astro+Pressure combined */
+    /* Row 2: Wind | Astro | Pressure | AirQuality (UV hidden, merged into wind) */
     #widgetWind { grid-row: 2; grid-column: 1; }
-    #widgetUV { grid-row: 2; grid-column: 2; }
-    #widgetAstro {
+    #widgetUV { display: none; }
+    #widgetAstro { grid-row: 2; grid-column: 2; }
+    #widgetPressure {
       grid-row: 2; grid-column: 3;
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 0 0.3rem;
-      align-content: center;
-      padding: 0.35rem 0.45rem;
+      display: flex;
     }
-    #widgetPressure { display: none; }
     #widgetAir { grid-row: 2; grid-column: 4; }
     /* Forecast strip: row 3, all 4 columns */
     #forecastRow { grid-row: 3; grid-column: 1 / -1; display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; }
@@ -602,12 +598,12 @@
     <!-- === FILA MEDIA === -->
     <div class="row-mid">
 
-      <!-- Viento -->
+      <!-- Viento + UV -->
       <div class="widget" id="widgetWind">
         <div class="label">Viento</div>
         <div class="wind-value mono"><span id="windSpeed">--</span></div>
-        <div class="wind-unit">km/h</div>
-        <div class="wind-dir" id="windDir">-- --&deg;</div>
+        <div class="wind-unit">km/h &middot; <span id="windDir2">--</span></div>
+        <div class="wind-dir">UV <span class="mono" id="uvValue2" style="font-weight:700;">--</span> <span id="uvCategory2" style="font-size:inherit;">--</span></div>
       </div>
 
       <!-- UV -->
@@ -617,30 +613,21 @@
         <div class="uv-category" id="uvCategory">--</div>
       </div>
 
-      <!-- Amanecer / Ocaso / Luna + Presion (combined) -->
+      <!-- Amanecer / Ocaso / Luna -->
       <div class="widget" id="widgetAstro">
-        <div style="display:flex;flex-direction:column;justify-content:center;">
-          <div class="label">Amanecer &middot; Ocaso</div>
-          <div class="astro-row">
-            <span class="icon">&#9728;&#65039;</span>
-            <span class="time" id="sunrise">--:--</span>
-            <span style="color:var(--text-dim);margin:0 0.15rem;">&middot;</span>
-            <span class="icon">&#127749;</span>
-            <span class="time" id="sunset">--:--</span>
-          </div>
-          <div class="astro-moon">
-            <span class="moon-icon" id="moonIcon">&#127761;</span>
-            <span id="moonPhase">--</span>
-          </div>
-          <div class="astro-daylight" id="daylight">--h --m luz</div>
+        <div class="label">Amanecer &middot; Ocaso</div>
+        <div class="astro-row">
+          <span class="icon">&#9728;&#65039;</span>
+          <span class="time" id="sunrise">--:--</span>
+          <span style="color:var(--text-dim);margin:0 0.15rem;">&middot;</span>
+          <span class="icon">&#127749;</span>
+          <span class="time" id="sunset">--:--</span>
         </div>
-        <div style="display:flex;flex-direction:column;justify-content:center;">
-          <div class="label">Presion Atm.</div>
-          <div class="pressure-value mono">
-            <span id="pressureValue2">---</span><span class="pressure-unit">hPa</span>
-          </div>
-          <div class="pressure-trend stable" id="pressureTrend2">--</div>
+        <div class="astro-moon">
+          <span class="moon-icon" id="moonIcon">&#127761;</span>
+          <span id="moonPhase">--</span>
         </div>
+        <div class="astro-daylight" id="daylight">--h --m luz</div>
       </div>
 
       <!-- Presion -->
@@ -866,7 +853,11 @@
       // Viento
       document.getElementById('windSpeed').textContent = Math.round(c.wind_speed_10m);
       const dir = windDirection(c.wind_direction_10m);
-      document.getElementById('windDir').textContent = dir + ' ' + Math.round(c.wind_direction_10m) + '\u00B0';
+      var dirText = dir + ' ' + Math.round(c.wind_direction_10m) + '\u00B0';
+      var wdEl = document.getElementById('windDir');
+      if (wdEl) wdEl.textContent = dirText;
+      var wd2 = document.getElementById('windDir2');
+      if (wd2) wd2.textContent = dirText;
 
       // UV
       const uvVal = Math.round(c.uv_index);
@@ -877,6 +868,11 @@
       uvEl.style.color = uvCat.color;
       uvCatEl.textContent = uvCat.text;
       uvCatEl.style.color = uvCat.color;
+      // Mirror UV to wind widget
+      var uv2 = document.getElementById('uvValue2');
+      var uc2 = document.getElementById('uvCategory2');
+      if (uv2) { uv2.textContent = uvVal; uv2.style.color = uvCat.color; }
+      if (uc2) { uc2.textContent = uvCat.text; uc2.style.color = uvCat.color; }
 
       // Amanecer / Ocaso
       const pad = n => String(n).padStart(2, '0');
