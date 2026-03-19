@@ -451,36 +451,57 @@
       filter: brightness(2); /* compensate so prompt is still readable */
     }
 
-    /* ===== WEATHER MASCOT ===== */
+    /* ===== CHARACTER MASCOTS ===== */
     .mascot-overlay {
       position: fixed;
-      bottom: 3vh;
-      right: 3vw;
       z-index: 15;
-      opacity: 0;
-      transform: translateY(20px) scale(0.8);
-      transition: opacity 0.8s ease, transform 0.8s ease;
       pointer-events: none;
-      filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.3));
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+      transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease;
+      opacity: 0;
     }
 
-    .mascot-overlay.visible {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
+    .mascot-overlay.visible { opacity: 1; }
 
-    .mascot-overlay svg {
-      width: 12vw;
-      height: auto;
+    /* Entry from each edge */
+    .mascot-overlay.from-bottom {
+      bottom: 0; left: 50%; transform: translate(-50%, 100%);
+    }
+    .mascot-overlay.from-bottom.visible { transform: translate(-50%, -1vh); }
+
+    .mascot-overlay.from-left {
+      left: 0; top: 50%; transform: translate(-100%, -50%);
+    }
+    .mascot-overlay.from-left.visible { transform: translate(1vw, -50%); }
+
+    .mascot-overlay.from-right {
+      right: 0; top: 50%; transform: translate(100%, -50%);
+    }
+    .mascot-overlay.from-right.visible { transform: translate(-1vw, -50%); }
+
+    .mascot-overlay.from-top {
+      top: 0; left: 50%; transform: translate(-50%, -100%);
+    }
+    .mascot-overlay.from-top.visible { transform: translate(-50%, 1vh); }
+
+    .mascot-overlay img {
+      height: 18vh;
+      width: auto;
+      max-width: 20vw;
+      object-fit: contain;
     }
 
     .mascot-caption {
       text-align: center;
-      font-size: 1.1vw;
-      color: var(--text-mid);
-      margin-top: 0.2rem;
+      font-size: 1.3vw;
+      color: var(--text-light);
+      margin-top: 0.3rem;
       font-family: 'Exo 2', sans-serif;
       font-style: italic;
+      background: rgba(0,0,0,0.7);
+      padding: 0.15rem 0.6rem;
+      border-radius: 4px;
+      white-space: nowrap;
     }
 
     /* ===== SOURCE INDICATOR ===== */
@@ -1206,149 +1227,155 @@
       }
     }
 
-    // ===== SNOOPY WEATHER MASCOT =====
-    // Classic Snoopy: big round head, long snout, floppy black ears, white body
-    function snoopyBase() {
-      return '' +
-        // Body (standing)
-        '<ellipse cx="50" cy="68" rx="12" ry="16" fill="white"/>' +
-        // Belly
-        '<ellipse cx="50" cy="72" rx="9" ry="10" fill="white"/>' +
-        // Feet
-        '<ellipse cx="42" cy="84" rx="7" ry="3" fill="white"/>' +
-        '<ellipse cx="58" cy="84" rx="7" ry="3" fill="white"/>' +
-        // Tail
-        '<path d="M62 58 Q72 48 68 40" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-        // Head (big round)
-        '<circle cx="50" cy="34" r="20" fill="white"/>' +
-        // Snout (long, classic Snoopy)
-        '<ellipse cx="58" cy="40" rx="14" ry="8" fill="white"/>' +
-        // Nose (big, round, black at tip of snout)
-        '<circle cx="70" cy="38" r="3.5" fill="black"/>' +
-        // Ear (long, floppy, black — the signature)
-        '<path d="M35 28 Q28 18 22 30 Q18 45 30 48" fill="black"/>' +
-        // Eye (simple dot)
-        '<circle cx="54" cy="30" r="2" fill="black"/>' +
-        // Mouth line
-        '<path d="M62 44 Q66 46 70 44" stroke="black" stroke-width="1" fill="none"/>';
-    }
-
-    function getMascotSvg(weatherCode, temp) {
-      var extras = '';
-      var caption = '';
-
-      if (weatherCode >= 95) {
-        // Storm: Snoopy scared, hiding
-        extras = '<rect x="28" y="22" width="44" height="40" rx="5" fill="#556688" opacity="0.8"/>' +
-          '<circle cx="50" cy="38" r="8" fill="white"/>' +
-          '<circle cx="48" cy="36" r="1.5" fill="black"/><circle cx="53" cy="36" r="1.5" fill="black"/>' +
-          '<path d="M46 42 Q50 40 54 42" stroke="black" stroke-width="1" fill="none"/>';
-        caption = 'AAUGH!';
-      } else if (weatherCode >= 61 || (weatherCode >= 80 && weatherCode <= 82)) {
-        // Rain: Snoopy with umbrella
-        extras = '<line x1="50" y1="2" x2="50" y2="28" stroke="#cc3322" stroke-width="2.5"/>' +
-          '<path d="M30 5 Q50 -8 70 5 Q50 2 30 5Z" fill="#cc3322"/>' +
-          '<rect x="36" y="81" width="12" height="5" rx="2" fill="#ffcc00"/>' +
-          '<rect x="52" y="81" width="12" height="5" rx="2" fill="#ffcc00"/>';
-        caption = 'Lleva paraguas, Charlie Brown';
-      } else if (weatherCode >= 51 && weatherCode <= 55) {
-        // Drizzle: Snoopy looking annoyed at drops
-        extras = '<circle cx="30" cy="15" r="1.5" fill="#4488cc" opacity="0.6"/>' +
-          '<circle cx="45" cy="8" r="1.5" fill="#4488cc" opacity="0.6"/>' +
-          '<circle cx="65" cy="12" r="1.5" fill="#4488cc" opacity="0.6"/>' +
-          '<circle cx="75" cy="20" r="1.5" fill="#4488cc" opacity="0.6"/>' +
-          '<path d="M46 42 L44 44" stroke="black" stroke-width="1.2"/>';
-        caption = '*sigh* ...llovizna';
-      } else if (weatherCode >= 71 && weatherCode <= 77) {
-        // Snow: Snoopy with red scarf and Santa hat
-        extras = '<path d="M32 20 Q50 8 50 18" fill="#cc2222"/>' +
-          '<circle cx="32" cy="20" r="4" fill="white"/>' +
-          '<ellipse cx="50" cy="20" rx="22" ry="4" fill="#cc2222"/>' +
-          '<path d="M38 48 Q50 58 62 48" stroke="#cc2222" stroke-width="4" fill="none"/>' +
-          '<path d="M62 48 L70 56" stroke="#cc2222" stroke-width="3" fill="none" stroke-linecap="round"/>';
-        caption = 'Navidad en Buenos Aires?';
-      } else if (weatherCode === 45 || weatherCode === 48) {
-        // Fog: Snoopy squinting, can't see
-        extras = '<line x1="50" y1="30" x2="58" y2="30" stroke="black" stroke-width="2.5" stroke-linecap="round"/>' +
-          '<rect x="15" y="25" width="70" height="30" fill="white" opacity="0.15" rx="4"/>';
-        caption = 'No veo nada...';
-      } else if (temp > 32) {
-        // Hot: Joe Cool with sunglasses, panting
-        extras = '<rect x="48" y="27" width="12" height="5" rx="2.5" fill="#111"/>' +
-          '<line x1="48" y1="29" x2="42" y2="26" stroke="#111" stroke-width="1.5"/>' +
-          '<path d="M64 44 Q68 52 66 56" fill="#ff6677"/>' +
-          '<text x="50" y="14" text-anchor="middle" font-size="7" fill="' + "var(--text-dim)" + '" font-family="Exo 2">Joe Cool</text>';
-        caption = 'Too cool for this heat';
-      } else if (temp < 10) {
-        // Cold: Snoopy shivering with scarf
-        extras = '<path d="M38 48 Q50 56 62 48" stroke="#ff6622" stroke-width="4" fill="none"/>' +
-          '<path d="M62 48 L68 58" stroke="#ff6622" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-          '<line x1="26" y1="32" x2="22" y2="30" stroke="#88ccff" stroke-width="1.2"/>' +
-          '<line x1="26" y1="38" x2="22" y2="40" stroke="#88ccff" stroke-width="1.2"/>' +
-          '<line x1="78" y1="32" x2="82" y2="30" stroke="#88ccff" stroke-width="1.2"/>' +
-          '<line x1="78" y1="38" x2="82" y2="40" stroke="#88ccff" stroke-width="1.2"/>';
-        caption = 'Mi casita tiene calefaccion';
-      } else if (weatherCode <= 1) {
-        // Sunny: Happy dance Snoopy!
-        extras = '<path d="M36 60 Q30 50 26 56" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-          '<path d="M64 60 Q70 50 74 56" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>' +
-          '<path d="M56 42 Q62 46 56 44" stroke="black" stroke-width="1" fill="none"/>' +
-          '<text x="50" y="10" text-anchor="middle" font-size="8" fill="' + "var(--yellow)" + '">&#9834; &#9835;</text>';
-        caption = 'Suppertime!';
-      } else if (weatherCode <= 3) {
-        // Cloudy: Snoopy on top of doghouse (lying down classic pose)
-        extras = '<rect x="25" y="70" width="50" height="18" rx="2" fill="#cc3322"/>' +
-          '<polygon points="25,70 50,58 75,70" fill="#cc3322"/>' +
-          '<ellipse cx="50" cy="66" rx="16" ry="5" fill="white"/>' +
-          '<circle cx="62" cy="62" r="8" fill="white"/>' +
-          '<circle cx="68" cy="60" r="5" fill="white"/>' +
-          '<circle cx="72" cy="58" r="2" fill="black"/>' +
-          '<path d="M58 56 Q54 50 50 58" fill="black"/>';
-        caption = 'Pensando en la cena...';
-      } else {
-        // Default: classic happy Snoopy
-        extras = '<path d="M56 42 Q62 46 56 44" stroke="black" stroke-width="1" fill="none"/>';
-        caption = 'La vida es buena';
+    // ===== CHARACTER MASCOTS (rotating every 5 min) =====
+    var CHARACTERS = [
+      {
+        id: 'snoopy', name: 'Snoopy',
+        phrases: {
+          sol: 'Suppertime!',
+          lluvia: 'Lleva paraguas, Charlie Brown',
+          frio: 'Mi casita tiene calefaccion'
+        }
+      },
+      {
+        id: 'olga', name: 'Olga',
+        phrases: {
+          sol: 'Que lindo dia para pensar en nada',
+          lluvia: 'La lluvia lava todo, hasta la tristeza',
+          frio: 'Frio es cuando el alma se pone bufanda'
+        }
+      },
+      {
+        id: 'martincito', name: 'Martincito',
+        phrases: {
+          sol: 'Vamos a jugar afuera!',
+          lluvia: 'Los charcos son piletas gratis',
+          frio: 'Quiero chocolate caliente'
+        }
+      },
+      {
+        id: 'enriqueta', name: 'Enriqueta',
+        phrases: {
+          sol: 'Hoy es un buen dia para leer al sol',
+          lluvia: 'Dia perfecto para leer adentro',
+          frio: 'Un libro abriga mas que una frazada'
+        }
+      },
+      {
+        id: 'felini', name: 'Felini',
+        phrases: {
+          sol: 'Miau',
+          lluvia: 'No me mojo. Soy gato.',
+          frio: 'Busco falda para dormir encima'
+        }
+      },
+      {
+        id: 'madariaga', name: 'Madariaga',
+        phrases: {
+          sol: 'Todo bien, todo lindo',
+          lluvia: 'Hay que bancarsela',
+          frio: 'Ponete la campera, pibe'
+        }
+      },
+      {
+        id: 'percy', name: 'Percy Jackson',
+        phrases: {
+          sol: 'Los dioses estan de buen humor',
+          lluvia: 'Poseidon esta de mal humor hoy',
+          frio: 'Hasta el Olimpo se congela'
+        }
+      },
+      {
+        id: 'harry', name: 'Harry Potter',
+        phrases: {
+          sol: 'Expecto Patronum!',
+          lluvia: 'Impervius!',
+          frio: 'Necesito una bufanda de Gryffindor'
+        }
+      },
+      {
+        id: 'mafalda', name: 'Mafalda',
+        phrases: {
+          sol: 'Estamos perdidos. Hace buen tiempo y nadie protesta',
+          lluvia: 'La humanidad se moja y no aprende',
+          frio: 'Con este frio ni la sopa se salva'
+        }
+      },
+      {
+        id: 'inodoro', name: 'Inodoro Pereyra',
+        phrases: {
+          sol: "Lindo dia pa' matear, Mendieta",
+          lluvia: 'Llueve como vaca mirando al cielo',
+          frio: 'Hace un frio que pela, Mendieta'
+        }
       }
+    ];
 
-      var useSnoopyBase = (weatherCode < 95 && weatherCode !== 45 && weatherCode !== 48 && !(weatherCode <= 3 && weatherCode >= 2));
-      var svg = '<svg viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">';
-      if (weatherCode >= 2 && weatherCode <= 3) {
-        // Doghouse scene — no base body, custom pose
-        svg += extras;
-      } else if (weatherCode >= 95) {
-        // Hiding — no base body
-        svg += extras;
-      } else {
-        svg += snoopyBase() + extras;
-      }
-      svg += '</svg>';
+    var lastCharIdx = -1;
 
-      return { svg: svg, caption: caption };
+    function getWeatherVariant(weatherCode, temp) {
+      if (weatherCode >= 51) return 'lluvia'; // drizzle, rain, snow, storm
+      if (weatherCode >= 3 || weatherCode === 45 || weatherCode === 48 || temp < 15) return 'frio';
+      return 'sol';
     }
 
     function showMascot() {
       if (!state.weatherData) return;
       var c = state.weatherData.current;
-      var mascot = getMascotSvg(c.weather_code, c.temperature_2m);
+      var variant = getWeatherVariant(c.weather_code, c.temperature_2m);
+
+      // Pick random character (don't repeat)
+      var idx;
+      do {
+        idx = Math.floor(Math.random() * CHARACTERS.length);
+      } while (idx === lastCharIdx && CHARACTERS.length > 1);
+      lastCharIdx = idx;
+
+      var ch = CHARACTERS[idx];
+      var imgPath = 'characters/' + ch.id + '-' + variant + '.png';
+      var phrase = ch.phrases[variant];
+
       var overlay = document.getElementById('mascotOverlay');
-      var svgEl = document.getElementById('mascotSvg');
       var captionEl = document.getElementById('mascotCaption');
 
-      svgEl.textContent = '';
-      // Use DOMParser for safe SVG insertion
-      var parser = new DOMParser();
-      var doc = parser.parseFromString(mascot.svg, 'image/svg+xml');
-      var svgNode = doc.documentElement;
-      svgEl.appendChild(document.importNode(svgNode, true));
-      captionEl.textContent = mascot.caption;
+      // Remove old classes
+      overlay.classList.remove('visible', 'from-bottom', 'from-left', 'from-right', 'from-top');
+      // Remove old position styles
+      overlay.style.cssText = '';
 
-      overlay.classList.add('visible');
+      // Random edge
+      var edges = ['from-bottom', 'from-left', 'from-right', 'from-top'];
+      var edge = edges[Math.floor(Math.random() * edges.length)];
+      overlay.classList.add(edge);
 
-      // Hide after 12 seconds
-      setTimeout(function() {
+      // Set content
+      var imgContainer = document.getElementById('mascotSvg');
+      while (imgContainer.firstChild) imgContainer.removeChild(imgContainer.firstChild);
+
+      var img = document.createElement('img');
+      img.alt = ch.name;
+      img.src = imgPath;
+
+      // If image fails to load (user hasn't added it yet), skip silently
+      img.onerror = function() {
         overlay.classList.remove('visible');
-      }, 12000);
+      };
+
+      img.onload = function() {
+        captionEl.textContent = '"' + phrase + '" \u2014 ' + ch.name;
+
+        // Small delay then show
+        setTimeout(function() {
+          overlay.classList.add('visible');
+        }, 50);
+
+        // Hide after 10 seconds
+        setTimeout(function() {
+          overlay.classList.remove('visible');
+        }, 10000);
+      };
+
+      imgContainer.appendChild(img);
     }
 
     // ===== SMART ALERTS =====
