@@ -451,6 +451,38 @@
       filter: brightness(2); /* compensate so prompt is still readable */
     }
 
+    /* ===== WEATHER MASCOT ===== */
+    .mascot-overlay {
+      position: fixed;
+      bottom: 3vh;
+      right: 3vw;
+      z-index: 15;
+      opacity: 0;
+      transform: translateY(20px) scale(0.8);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      pointer-events: none;
+      filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.3));
+    }
+
+    .mascot-overlay.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .mascot-overlay svg {
+      width: 12vw;
+      height: auto;
+    }
+
+    .mascot-caption {
+      text-align: center;
+      font-size: 1.1vw;
+      color: var(--text-mid);
+      margin-top: 0.2rem;
+      font-family: 'Exo 2', sans-serif;
+      font-style: italic;
+    }
+
     /* ===== SOURCE INDICATOR ===== */
     .source-indicator {
       position: fixed;
@@ -654,6 +686,12 @@
     <!-- === FILA INFERIOR: PRONOSTICO HORARIO === -->
     <div class="row-bottom" id="forecastRow"></div>
 
+  </div>
+
+  <!-- Weather mascot -->
+  <div class="mascot-overlay" id="mascotOverlay">
+    <div id="mascotSvg"></div>
+    <div class="mascot-caption" id="mascotCaption"></div>
   </div>
 
   <!-- Alert banner -->
@@ -1168,6 +1206,121 @@
       }
     }
 
+    // ===== WEATHER MASCOT (beagle with outfits) =====
+    // Base dog: white beagle body, black ears, simple face
+    var MASCOT_BASE_HEAD = '<ellipse cx="50" cy="32" rx="18" ry="16" fill="#f5f0e8"/>' +
+      '<ellipse cx="38" cy="22" rx="8" ry="12" fill="#222" transform="rotate(-15 38 22)"/>' +
+      '<ellipse cx="62" cy="22" rx="8" ry="12" fill="#222" transform="rotate(15 62 22)"/>' +
+      '<circle cx="44" cy="32" r="2.5" fill="#222"/>' +
+      '<circle cx="56" cy="32" r="2.5" fill="#222"/>' +
+      '<ellipse cx="50" cy="38" rx="4" ry="3" fill="#333"/>';
+
+    var MASCOT_BASE_BODY = '<ellipse cx="50" cy="62" rx="14" ry="18" fill="#f5f0e8"/>' +
+      '<ellipse cx="38" cy="78" rx="5" ry="4" fill="#f5f0e8"/>' +
+      '<ellipse cx="62" cy="78" rx="5" ry="4" fill="#f5f0e8"/>';
+
+    // Tail (always happy, wagging)
+    var MASCOT_TAIL = '<path d="M64 55 Q75 45 72 38" stroke="#f5f0e8" stroke-width="4" fill="none" stroke-linecap="round"/>';
+
+    function getMascotSvg(weatherCode, temp) {
+      var accessories = '';
+      var caption = '';
+
+      if (weatherCode >= 95) {
+        // Storm: hiding under blanket, scared
+        accessories = '<rect x="30" y="18" width="40" height="35" rx="4" fill="#6688aa" opacity="0.85"/>' +
+          '<text x="50" y="40" text-anchor="middle" font-size="16">&#128560;</text>';
+        caption = 'No salgas...';
+      } else if (weatherCode >= 61 || weatherCode >= 80 && weatherCode <= 82) {
+        // Rain: umbrella + boots
+        accessories = '<line x1="50" y1="5" x2="50" y2="25" stroke="#ff6644" stroke-width="2"/>' +
+          '<path d="M32 8 Q50 -5 68 8" fill="#ff6644"/>' +
+          '<rect x="35" y="75" width="10" height="6" rx="2" fill="#ffcc00"/>' +
+          '<rect x="55" y="75" width="10" height="6" rx="2" fill="#ffcc00"/>';
+        caption = 'Lleva paraguas';
+      } else if (weatherCode >= 51 && weatherCode <= 55) {
+        // Drizzle: small umbrella
+        accessories = '<line x1="65" y1="10" x2="58" y2="28" stroke="#4488cc" stroke-width="1.5"/>' +
+          '<path d="M55 12 Q65 5 75 12" fill="#4488cc"/>';
+        caption = 'Llovizna suave';
+      } else if (weatherCode >= 71 && weatherCode <= 77) {
+        // Snow: scarf + beanie
+        accessories = '<ellipse cx="50" cy="16" rx="16" ry="6" fill="#cc3333"/>' +
+          '<circle cx="50" cy="12" r="4" fill="#cc3333"/>' +
+          '<path d="M38 42 Q50 52 62 42" stroke="#22aa44" stroke-width="4" fill="none"/>';
+        caption = 'Abrigate bien';
+      } else if (weatherCode === 45 || weatherCode === 48) {
+        // Fog: squinting eyes
+        accessories = '<line x1="41" y1="32" x2="47" y2="32" stroke="#222" stroke-width="2" stroke-linecap="round"/>' +
+          '<line x1="53" y1="32" x2="59" y2="32" stroke="#222" stroke-width="2" stroke-linecap="round"/>';
+        caption = 'No se ve nada...';
+      } else if (temp > 32) {
+        // Hot: sunglasses + panting tongue
+        accessories = '<rect x="40" y="29" width="10" height="5" rx="2" fill="#111" opacity="0.8"/>' +
+          '<rect x="52" y="29" width="10" height="5" rx="2" fill="#111" opacity="0.8"/>' +
+          '<line x1="50" y1="29" x2="40" y2="27" stroke="#111" stroke-width="1.5"/>' +
+          '<line x1="50" y1="29" x2="60" y2="27" stroke="#111" stroke-width="1.5"/>' +
+          '<path d="M48 40 Q50 48 52 40" fill="#ff6677"/>';
+        caption = 'Mucho calor...';
+      } else if (temp < 10) {
+        // Cold: scarf + shivering lines
+        accessories = '<path d="M38 44 Q50 54 62 44" stroke="#ff6644" stroke-width="4" fill="none"/>' +
+          '<path d="M62 44 L68 52" stroke="#ff6644" stroke-width="3" fill="none"/>' +
+          '<line x1="28" y1="30" x2="25" y2="28" stroke="#88ccff" stroke-width="1" opacity="0.6"/>' +
+          '<line x1="72" y1="30" x2="75" y2="28" stroke="#88ccff" stroke-width="1" opacity="0.6"/>' +
+          '<line x1="28" y1="35" x2="25" y2="37" stroke="#88ccff" stroke-width="1" opacity="0.6"/>' +
+          '<line x1="72" y1="35" x2="75" y2="37" stroke="#88ccff" stroke-width="1" opacity="0.6"/>';
+        caption = 'Hace frio, abrigate';
+      } else if (weatherCode <= 1) {
+        // Clear sunny: sunglasses + happy
+        accessories = '<rect x="40" y="29" width="10" height="5" rx="2" fill="#111" opacity="0.8"/>' +
+          '<rect x="52" y="29" width="10" height="5" rx="2" fill="#111" opacity="0.8"/>' +
+          '<line x1="50" y1="29" x2="40" y2="27" stroke="#111" stroke-width="1.5"/>' +
+          '<line x1="50" y1="29" x2="60" y2="27" stroke="#111" stroke-width="1.5"/>' +
+          '<path d="M44 42 Q50 46 56 42" stroke="#222" stroke-width="1.5" fill="none"/>';
+        caption = 'Dia lindo, a pasear';
+      } else if (weatherCode <= 3) {
+        // Cloudy: normal, looking up
+        accessories = '<circle cx="44" cy="30" r="2.5" fill="#222"/>' +
+          '<circle cx="56" cy="30" r="2.5" fill="#222"/>' +
+          '<path d="M44 42 Q50 45 56 42" stroke="#222" stroke-width="1.5" fill="none"/>';
+        caption = 'Un poco nublado';
+      } else {
+        // Default: happy
+        accessories = '<path d="M44 42 Q50 46 56 42" stroke="#222" stroke-width="1.5" fill="none"/>';
+        caption = 'Todo tranqui';
+      }
+
+      var svg = '<svg viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">' +
+        MASCOT_TAIL + MASCOT_BASE_BODY + MASCOT_BASE_HEAD + accessories + '</svg>';
+
+      return { svg: svg, caption: caption };
+    }
+
+    function showMascot() {
+      if (!state.weatherData) return;
+      var c = state.weatherData.current;
+      var mascot = getMascotSvg(c.weather_code, c.temperature_2m);
+      var overlay = document.getElementById('mascotOverlay');
+      var svgEl = document.getElementById('mascotSvg');
+      var captionEl = document.getElementById('mascotCaption');
+
+      svgEl.textContent = '';
+      // Use DOMParser for safe SVG insertion
+      var parser = new DOMParser();
+      var doc = parser.parseFromString(mascot.svg, 'image/svg+xml');
+      var svgNode = doc.documentElement;
+      svgEl.appendChild(document.importNode(svgNode, true));
+      captionEl.textContent = mascot.caption;
+
+      overlay.classList.add('visible');
+
+      // Hide after 12 seconds
+      setTimeout(function() {
+        overlay.classList.remove('visible');
+      }, 12000);
+    }
+
     // ===== SMART ALERTS =====
     function checkAlerts(data) {
       var alerts = [];
@@ -1291,8 +1444,12 @@
       setInterval(fetchAirQuality, CONFIG.refreshClimateMs);
       setInterval(loadImage, CONFIG.refreshImageMs);
 
-      // Cycle forecast mode every 20 seconds (hourly ↔ 7-day)
+      // Cycle forecast mode every 20 seconds (hourly <-> 7-day)
       setInterval(cycleForecastMode, 20 * 1000);
+
+      // Weather mascot: show after 5s, then every 30 min
+      setTimeout(showMascot, 5000);
+      setInterval(showMascot, 30 * 60 * 1000);
 
       // Preventive reload every 6 hours to avoid Chrome memory leaks
       setTimeout(function() { location.reload(); }, 6 * 3600 * 1000);
