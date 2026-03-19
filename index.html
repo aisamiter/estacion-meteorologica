@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="screen-orientation" content="landscape">
+  <title>Estacion Meteorologica — Buenos Aires</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      color: #fff;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== TIPOGRAFIA ===== */
+    .mono {
+      font-family: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
+    }
+
+    .label {
+      font-size: 0.65rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .sub-info {
+      font-size: 0.75rem;
+      color: #aaa;
+      margin-top: 0.15rem;
+    }
+
+    /* ===== LAYOUT PRINCIPAL ===== */
+    .dashboard {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-rows: 1fr 0.8fr auto;
+      grid-template-columns: 1fr;
+      gap: 3px;
+      padding: 3px;
+    }
+
+    .row-top {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr 1fr 1.4fr;
+      gap: 3px;
+    }
+
+    .row-mid {
+      display: grid;
+      grid-template-columns: 0.8fr 0.7fr 1.2fr 1fr 1.3fr;
+      gap: 3px;
+    }
+
+    .row-bottom {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 2px;
+    }
+
+    /* ===== WIDGET BASE ===== */
+    .widget {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 6px;
+      padding: 0.5rem 0.6rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ===== WIDGET: RELOJ ===== */
+    .clock-time {
+      font-size: 3.2rem;
+      font-weight: 700;
+      color: #00e5ff;
+      line-height: 1;
+    }
+
+    .clock-seconds {
+      font-size: 1.4rem;
+      color: #00a5bf;
+      vertical-align: top;
+    }
+
+    .clock-date {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 0.2rem;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .clock-weather {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.3rem;
+    }
+
+    .clock-weather-icon { font-size: 1.5rem; }
+
+    .clock-weather-text {
+      font-size: 0.85rem;
+      color: #ddd;
+      font-weight: 500;
+    }
+
+    /* ===== WIDGET: TEMPERATURA ===== */
+    .temp-value {
+      font-size: 3.5rem;
+      font-weight: 700;
+      color: #00e5ff;
+      line-height: 1;
+    }
+
+    .temp-degree {
+      font-size: 1.8rem;
+      vertical-align: top;
+      color: #00a5bf;
+    }
+
+    .temp-minmax {
+      font-size: 0.8rem;
+      color: #88ccdd;
+      margin-top: 0.2rem;
+    }
+
+    .temp-minmax .min { color: #66aacc; }
+    .temp-minmax .max { color: #ff8844; }
+
+    /* ===== WIDGET: HUMEDAD ===== */
+    .humid-value {
+      font-size: 3.5rem;
+      font-weight: 700;
+      color: #00ff88;
+      line-height: 1;
+    }
+
+    .humid-percent {
+      font-size: 1.8rem;
+      color: #00cc66;
+    }
+
+    /* ===== WIDGET: RADAR ===== */
+    .cam-widget { padding: 0; overflow: hidden; }
+
+    .radar-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #0a0a0a;
+    }
+
+    .radar-container img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .radar-base { z-index: 1; }
+    .radar-overlay { z-index: 2; opacity: 0.7; }
+
+    .cam-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 0.25rem 0.4rem;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      font-size: 0.6rem;
+      color: #aaa;
+      display: flex;
+      justify-content: space-between;
+      z-index: 3;
+    }
+
+    .cam-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #555;
+      font-size: 0.8rem;
+      background: #0a0a0a;
+      border-radius: 6px;
+      position: relative;
+      z-index: 4;
+    }
+
+    /* ===== WIDGET: VIENTO ===== */
+    .wind-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #e0e0e0;
+      line-height: 1;
+    }
+
+    .wind-unit { font-size: 0.7rem; color: #888; }
+
+    .wind-dir {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 0.15rem;
+    }
+
+    /* ===== WIDGET: UV ===== */
+    .uv-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .uv-category {
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-top: 0.15rem;
+    }
+
+    /* ===== WIDGET: ASTRO ===== */
+    .astro-row {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .astro-row .icon { font-size: 1rem; }
+    .astro-row .time { color: #ffcc00; font-weight: 600; }
+
+    .astro-moon {
+      font-size: 0.75rem;
+      color: #ccc;
+      margin-top: 0.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .astro-moon .moon-icon { font-size: 1.1rem; }
+
+    .astro-daylight {
+      font-size: 0.65rem;
+      color: #888;
+      margin-top: 0.1rem;
+    }
+
+    /* ===== WIDGET: PRESION ===== */
+    .pressure-value {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #ff8800;
+      line-height: 1;
+    }
+
+    .pressure-unit { font-size: 0.8rem; color: #aa6600; }
+
+    .pressure-trend { font-size: 0.8rem; margin-top: 0.15rem; }
+    .pressure-trend.rising { color: #44cc44; }
+    .pressure-trend.falling { color: #ff4444; }
+    .pressure-trend.stable { color: #888; }
+
+    /* ===== WIDGET: CALIDAD AIRE (V2) ===== */
+    .aqi-main {
+      display: flex;
+      align-items: baseline;
+      gap: 0.4rem;
+    }
+
+    .aqi-value {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .aqi-label { font-size: 0.75rem; font-weight: 600; }
+    .aqi-detail { font-size: 0.7rem; color: #555; margin-top: 0.2rem; }
+
+    /* ===== PRONOSTICO HORARIO ===== */
+    .forecast-hour {
+      background: #0a0a0a;
+      border: 1px solid #1a1a1a;
+      border-radius: 4px;
+      padding: 0.25rem 0.15rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.1rem;
+    }
+
+    .forecast-hour .hour {
+      font-size: 0.6rem;
+      color: #888;
+      font-weight: 600;
+    }
+
+    .forecast-hour .icon {
+      font-size: 1.1rem;
+      line-height: 1.2;
+    }
+
+    .forecast-hour .temp {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #ddd;
+    }
+
+    .forecast-hour .rain {
+      font-size: 0.55rem;
+      color: #4488ff;
+    }
+
+    /* ===== SOURCE INDICATOR ===== */
+    .source-indicator {
+      position: fixed;
+      bottom: 2px;
+      left: 6px;
+      font-size: 0.5rem;
+      color: #444;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      z-index: 10;
+    }
+
+    .source-indicator .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #00ff88;
+    }
+
+    .source-indicator .dot.error { background: #ff4444; }
+
+    /* ===== OFFLINE STATUS ===== */
+    .status-offline {
+      position: fixed;
+      top: 4px;
+      right: 6px;
+      font-size: 0.55rem;
+      color: #ff4444;
+      display: none;
+      z-index: 10;
+    }
+
+    .status-offline.visible { display: block; }
+
+    /* ===== FULLSCREEN PROMPT ===== */
+    .fullscreen-prompt {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      cursor: pointer;
+    }
+
+    .fullscreen-prompt p {
+      color: #00e5ff;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+
+    .fullscreen-prompt .hint {
+      font-size: 0.7rem;
+      color: #888;
+    }
+
+    .fullscreen-prompt.hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Prompt para entrar en fullscreen -->
+  <div class="fullscreen-prompt" id="fullscreenPrompt">
+    <p>Toca para iniciar<br><span class="hint">Pantalla completa + datos en vivo</span></p>
+  </div>
+
+  <!-- Dashboard principal -->
+  <div class="dashboard">
+
+    <!-- === FILA SUPERIOR === -->
+    <div class="row-top">
+
+      <!-- Reloj / Fecha / Estado -->
+      <div class="widget" id="widgetClock">
+        <div class="label">Buenos Aires</div>
+        <div class="clock-time mono">
+          <span id="clockHM">--:--</span><span class="clock-seconds" id="clockS">00</span>
+        </div>
+        <div class="clock-date" id="clockDate">--- -- --- ----</div>
+        <div class="clock-weather">
+          <span class="clock-weather-icon" id="weatherIcon">--</span>
+          <span class="clock-weather-text" id="weatherText">Cargando...</span>
+        </div>
+      </div>
+
+      <!-- Temperatura -->
+      <div class="widget" id="widgetTemp">
+        <div class="label">Temp. Ext.</div>
+        <div class="temp-value mono">
+          <span id="tempCurrent">--</span><span class="temp-degree">&deg;</span>
+        </div>
+        <div class="sub-info">Sensacion: <span id="tempFeels">--</span>&deg;</div>
+        <div class="temp-minmax mono">
+          <span class="min">&darr;<span id="tempMin">--</span>&deg;</span>
+          &nbsp;
+          <span class="max">&uarr;<span id="tempMax">--</span>&deg;</span>
+        </div>
+      </div>
+
+      <!-- Humedad -->
+      <div class="widget" id="widgetHumid">
+        <div class="label">Humedad Ext.</div>
+        <div class="humid-value mono">
+          <span id="humidValue">--</span><span class="humid-percent">%</span>
+        </div>
+        <div class="sub-info"><span id="rainProb">--</span>% prob. lluvia</div>
+        <div class="sub-info">&middot; <span id="precip">0</span> mm</div>
+      </div>
+
+      <!-- Radar Precipitaciones -->
+      <div class="widget cam-widget" id="widgetCam">
+        <div class="radar-container" id="radarContainer">
+          <div class="cam-placeholder" id="camPlaceholder">
+            <span>Cargando radar...</span>
+          </div>
+          <img id="radarBase" class="radar-base" style="display:none;" alt="Mapa base">
+          <img id="radarOverlay" class="radar-overlay" style="display:none;" alt="Radar precipitaciones">
+        </div>
+        <div class="cam-overlay">
+          <span id="camSource">Radar RainViewer</span>
+          <span id="camTime">--:--</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- === FILA MEDIA === -->
+    <div class="row-mid">
+
+      <!-- Viento -->
+      <div class="widget" id="widgetWind">
+        <div class="label">Viento</div>
+        <div class="wind-value mono"><span id="windSpeed">--</span></div>
+        <div class="wind-unit">km/h</div>
+        <div class="wind-dir" id="windDir">-- --&deg;</div>
+      </div>
+
+      <!-- UV -->
+      <div class="widget" id="widgetUV">
+        <div class="label">Indice UV</div>
+        <div class="uv-value mono" id="uvValue">--</div>
+        <div class="uv-category" id="uvCategory">--</div>
+      </div>
+
+      <!-- Amanecer / Ocaso / Luna -->
+      <div class="widget" id="widgetAstro">
+        <div class="label">Amanecer &middot; Ocaso</div>
+        <div class="astro-row">
+          <span class="icon">&#9728;&#65039;</span>
+          <span class="time" id="sunrise">--:--</span>
+          <span style="color:#555;margin:0 0.2rem;">&middot;</span>
+          <span class="icon">&#127749;</span>
+          <span class="time" id="sunset">--:--</span>
+        </div>
+        <div class="astro-moon">
+          <span class="moon-icon" id="moonIcon">&#127761;</span>
+          <span id="moonPhase">--</span>
+        </div>
+        <div class="astro-daylight" id="daylight">--h --m luz</div>
+      </div>
+
+      <!-- Presion -->
+      <div class="widget" id="widgetPressure">
+        <div class="label">Presion Atm.</div>
+        <div class="pressure-value mono">
+          <span id="pressureValue">---</span><span class="pressure-unit">hPa</span>
+        </div>
+        <div class="pressure-trend stable" id="pressureTrend">--</div>
+      </div>
+
+      <!-- Calidad del Aire (V2) -->
+      <div class="widget" id="widgetAir">
+        <div class="label">Calidad del Aire</div>
+        <div class="aqi-main">
+          <span class="aqi-value" id="aqiValue" style="color:#555;">--</span>
+          <span class="aqi-label" id="aqiLabel" style="color:#555;">--</span>
+        </div>
+        <div class="aqi-detail" id="aqiDetail">Proximamente V2</div>
+      </div>
+
+    </div>
+
+    <!-- === FILA INFERIOR: PRONOSTICO HORARIO === -->
+    <div class="row-bottom" id="forecastRow"></div>
+
+  </div>
+
+  <!-- Source indicator -->
+  <div class="source-indicator">
+    <span class="dot" id="statusDot"></span>
+    <span>open-meteo</span>
+    <span id="lastUpdate">--:--</span>
+  </div>
+
+  <!-- Offline status -->
+  <div class="status-offline" id="offlineStatus">
+    Sin conexion &middot; Datos de hace <span id="staleMinutes">?</span> min
+  </div>
+
+  <script>
+    // ===== CONFIGURACION =====
+    const CONFIG = {
+      lat: -34.6037,
+      lon: -58.3816,
+      timezone: 'America/Argentina/Buenos_Aires',
+      refreshClimateMs: 15 * 60 * 1000,
+      refreshImageMs: 5 * 60 * 1000,
+      // GOES-19 satelite NOAA: imagen del cielo Sudamerica sur (CORS, sin API key, ~130KB thumbnail)
+      satelliteUrl: 'https://cdn.star.nesdis.noaa.gov/GOES19/ABI/SECTOR/ssa/GEOCOLOR/thumbnail.jpg',
+      // RainViewer: radar de precipitaciones (gratis, sin API key, CORS habilitado)
+      rainviewerApi: 'https://api.rainviewer.com/public/weather-maps.json',
+      // CartoDB dark basemap para radar overlay
+      radarZoom: 5,
+      radarTileX: 10,
+      radarTileY: 18,
+      basemapUrl: 'https://basemaps.cartocdn.com/dark_all/5/10/18.png',
+    };
+
+    // ===== ESTADO =====
+    const state = {
+      lastFetch: null,
+      lastPressure: null,
+      wakeLock: null,
+      weatherData: null,
+    };
+
+    // ===== WEATHER CODES (WMO) =====
+    const WEATHER_CODES = {
+      0:  { day: '\u2600\uFE0F', night: '\uD83C\uDF19', text: 'Despejado' },
+      1:  { day: '\uD83C\uDF24\uFE0F', night: '\uD83C\uDF19', text: 'Mayormente despejado' },
+      2:  { day: '\u26C5', night: '\u2601\uFE0F', text: 'Parcialmente nublado' },
+      3:  { day: '\u2601\uFE0F', night: '\u2601\uFE0F', text: 'Nublado' },
+      45: { day: '\uD83C\uDF2B\uFE0F', night: '\uD83C\uDF2B\uFE0F', text: 'Niebla' },
+      48: { day: '\uD83C\uDF2B\uFE0F', night: '\uD83C\uDF2B\uFE0F', text: 'Niebla densa' },
+      51: { day: '\uD83C\uDF26\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Llovizna leve' },
+      53: { day: '\uD83C\uDF26\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Llovizna' },
+      55: { day: '\uD83C\uDF27\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Llovizna intensa' },
+      61: { day: '\uD83C\uDF27\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Lluvia leve' },
+      63: { day: '\uD83C\uDF27\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Lluvia' },
+      65: { day: '\uD83C\uDF27\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Lluvia intensa' },
+      66: { day: '\uD83C\uDF27\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Lluvia congelante' },
+      67: { day: '\uD83C\uDF27\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Lluvia congelante fuerte' },
+      71: { day: '\uD83C\uDF28\uFE0F', night: '\uD83C\uDF28\uFE0F', text: 'Nieve leve' },
+      73: { day: '\uD83C\uDF28\uFE0F', night: '\uD83C\uDF28\uFE0F', text: 'Nieve' },
+      75: { day: '\uD83C\uDF28\uFE0F', night: '\uD83C\uDF28\uFE0F', text: 'Nieve intensa' },
+      77: { day: '\uD83C\uDF28\uFE0F', night: '\uD83C\uDF28\uFE0F', text: 'Granizo' },
+      80: { day: '\uD83C\uDF27\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Chubascos leves' },
+      81: { day: '\uD83C\uDF27\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Chubascos' },
+      82: { day: '\uD83C\uDF27\uFE0F', night: '\uD83C\uDF27\uFE0F', text: 'Chubascos fuertes' },
+      85: { day: '\uD83C\uDF28\uFE0F', night: '\uD83C\uDF28\uFE0F', text: 'Chubascos de nieve' },
+      86: { day: '\uD83C\uDF28\uFE0F', night: '\uD83C\uDF28\uFE0F', text: 'Chubascos de nieve fuertes' },
+      95: { day: '\u26C8\uFE0F', night: '\u26C8\uFE0F', text: 'Tormenta' },
+      96: { day: '\u26C8\uFE0F', night: '\u26C8\uFE0F', text: 'Tormenta con granizo' },
+      99: { day: '\u26C8\uFE0F', night: '\u26C8\uFE0F', text: 'Tormenta con granizo fuerte' },
+    };
+
+    // ===== UV CATEGORIAS =====
+    function getUvCategory(uv) {
+      if (uv <= 2)  return { text: 'Bajo', color: '#00cc44' };
+      if (uv <= 5)  return { text: 'Moderado', color: '#ffcc00' };
+      if (uv <= 7)  return { text: 'Alto', color: '#ff8800' };
+      if (uv <= 10) return { text: 'Muy alto', color: '#ff2200' };
+      return { text: 'Extremo', color: '#cc00ff' };
+    }
+
+    // ===== DIRECCION DEL VIENTO =====
+    function windDirection(deg) {
+      const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'];
+      return dirs[Math.round(deg / 22.5) % 16];
+    }
+
+    // ===== FASE LUNAR =====
+    function getMoonPhase(date) {
+      const refNewMoon = new Date(2000, 0, 6, 18, 14);
+      const synodicMonth = 29.53058867;
+      const daysSinceRef = (date - refNewMoon) / 86400000;
+      const age = ((daysSinceRef % synodicMonth) + synodicMonth) % synodicMonth;
+
+      const phases = [
+        { max: 1.85,  name: 'Luna nueva',       icon: '\uD83C\uDF11' },
+        { max: 5.54,  name: 'Creciente',         icon: '\uD83C\uDF12' },
+        { max: 9.23,  name: 'Cuarto creciente',  icon: '\uD83C\uDF13' },
+        { max: 12.92, name: 'Gibosa creciente',  icon: '\uD83C\uDF14' },
+        { max: 16.61, name: 'Luna llena',         icon: '\uD83C\uDF15' },
+        { max: 20.30, name: 'Gibosa menguante',  icon: '\uD83C\uDF16' },
+        { max: 23.99, name: 'Cuarto menguante',  icon: '\uD83C\uDF17' },
+        { max: 27.68, name: 'Menguante',          icon: '\uD83C\uDF18' },
+      ];
+
+      const found = phases.find(p => age < p.max);
+      if (found) return { phase: found.name, icon: found.icon };
+      return { phase: 'Luna nueva', icon: '\uD83C\uDF11' };
+    }
+
+    // ===== RELOJ =====
+    function updateClock() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+
+      document.getElementById('clockHM').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+      document.getElementById('clockS').textContent = pad(now.getSeconds());
+
+      const dias = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+      const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      document.getElementById('clockDate').textContent =
+        dias[now.getDay()] + ' ' + now.getDate() + ' ' + meses[now.getMonth()] + ' ' + now.getFullYear();
+    }
+
+    // ===== DIA O NOCHE =====
+    function isDaytime(sunrise, sunset) {
+      if (!sunrise || !sunset) return true;
+      const now = Date.now();
+      return now >= new Date(sunrise).getTime() && now <= new Date(sunset).getTime();
+    }
+
+    // ===== ICONO POR WEATHER CODE =====
+    function getWeatherInfo(code, daytime) {
+      const info = WEATHER_CODES[code] || WEATHER_CODES[0];
+      return { icon: daytime ? info.day : info.night, text: info.text };
+    }
+
+    // ===== FETCH OPEN-METEO =====
+    async function fetchWeather() {
+      const params = new URLSearchParams({
+        latitude: CONFIG.lat,
+        longitude: CONFIG.lon,
+        timezone: CONFIG.timezone,
+        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure,uv_index',
+        hourly: 'temperature_2m,weather_code,precipitation_probability',
+        daily: 'temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_probability_max',
+        forecast_hours: 12,
+        forecast_days: 1,
+      });
+
+      try {
+        const res = await fetch('https://api.open-meteo.com/v1/forecast?' + params);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        state.weatherData = data;
+        state.lastFetch = new Date();
+        updateAllWidgets(data);
+        setOnlineStatus(true);
+      } catch (err) {
+        console.error('Error fetching weather:', err);
+        setOnlineStatus(false);
+      }
+    }
+
+    // ===== ACTUALIZAR WIDGETS =====
+    function updateAllWidgets(data) {
+      const c = data.current;
+      const d = data.daily;
+      const h = data.hourly;
+      const daytime = isDaytime(d.sunrise[0], d.sunset[0]);
+      const weather = getWeatherInfo(c.weather_code, daytime);
+
+      // Weather status
+      document.getElementById('weatherIcon').textContent = weather.icon;
+      document.getElementById('weatherText').textContent = weather.text;
+
+      // Temperatura
+      document.getElementById('tempCurrent').textContent = Math.round(c.temperature_2m);
+      document.getElementById('tempFeels').textContent = Math.round(c.apparent_temperature);
+      document.getElementById('tempMin').textContent = Math.round(d.temperature_2m_min[0]);
+      document.getElementById('tempMax').textContent = Math.round(d.temperature_2m_max[0]);
+
+      // Humedad
+      document.getElementById('humidValue').textContent = Math.round(c.relative_humidity_2m);
+      document.getElementById('rainProb').textContent = d.precipitation_probability_max[0] || 0;
+      document.getElementById('precip').textContent = c.precipitation.toFixed(1);
+
+      // Viento
+      document.getElementById('windSpeed').textContent = Math.round(c.wind_speed_10m);
+      const dir = windDirection(c.wind_direction_10m);
+      document.getElementById('windDir').textContent = dir + ' ' + Math.round(c.wind_direction_10m) + '\u00B0';
+
+      // UV
+      const uvVal = Math.round(c.uv_index);
+      const uvCat = getUvCategory(uvVal);
+      const uvEl = document.getElementById('uvValue');
+      const uvCatEl = document.getElementById('uvCategory');
+      uvEl.textContent = uvVal;
+      uvEl.style.color = uvCat.color;
+      uvCatEl.textContent = uvCat.text;
+      uvCatEl.style.color = uvCat.color;
+
+      // Amanecer / Ocaso
+      const pad = n => String(n).padStart(2, '0');
+      const sr = new Date(d.sunrise[0]);
+      const ss = new Date(d.sunset[0]);
+      document.getElementById('sunrise').textContent = pad(sr.getHours()) + ':' + pad(sr.getMinutes());
+      document.getElementById('sunset').textContent = pad(ss.getHours()) + ':' + pad(ss.getMinutes());
+
+      // Horas de luz
+      const dlMs = ss - sr;
+      const dlH = Math.floor(dlMs / 3600000);
+      const dlM = Math.floor((dlMs % 3600000) / 60000);
+      document.getElementById('daylight').textContent = dlH + 'h ' + pad(dlM) + 'm luz';
+
+      // Luna
+      const moon = getMoonPhase(new Date());
+      document.getElementById('moonIcon').textContent = moon.icon;
+      document.getElementById('moonPhase').textContent = moon.phase;
+
+      // Presion
+      const pressure = Math.round(c.surface_pressure);
+      document.getElementById('pressureValue').textContent = pressure;
+
+      const trendEl = document.getElementById('pressureTrend');
+      if (state.lastPressure !== null) {
+        const diff = pressure - state.lastPressure;
+        if (diff > 1) {
+          trendEl.textContent = '\u25B2 Subiendo';
+          trendEl.className = 'pressure-trend rising';
+        } else if (diff < -1) {
+          trendEl.textContent = '\u25BC Bajando';
+          trendEl.className = 'pressure-trend falling';
+        } else {
+          trendEl.textContent = '\u2014 Estable';
+          trendEl.className = 'pressure-trend stable';
+        }
+      } else {
+        trendEl.textContent = '\u2014 Midiendo...';
+        trendEl.className = 'pressure-trend stable';
+      }
+      state.lastPressure = pressure;
+
+      // Pronostico horario
+      updateForecast(h, d.sunrise[0], d.sunset[0]);
+
+      // Timestamp
+      const now = new Date();
+      document.getElementById('lastUpdate').textContent =
+        'OK ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    }
+
+    // ===== PRONOSTICO HORARIO (DOM seguro, sin innerHTML) =====
+    function updateForecast(hourly, sunrise, sunset) {
+      const container = document.getElementById('forecastRow');
+      // Limpiar contenedor de forma segura
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+
+      const now = new Date();
+      const currentHour = now.getHours();
+      const times = hourly.time.map(function(t) { return new Date(t); });
+      let startIdx = times.findIndex(function(t) {
+        return t.getHours() >= currentHour && t.getDate() === now.getDate();
+      });
+      if (startIdx === -1) startIdx = 0;
+
+      const sunriseDate = new Date(sunrise);
+      const sunsetDate = new Date(sunset);
+      const count = Math.min(12, hourly.time.length - startIdx);
+
+      for (let i = 0; i < count; i++) {
+        const idx = startIdx + i;
+        if (idx >= hourly.time.length) break;
+
+        const time = new Date(hourly.time[idx]);
+        const isDay = time >= sunriseDate && time <= sunsetDate;
+        const weather = getWeatherInfo(hourly.weather_code[idx], isDay);
+
+        const el = document.createElement('div');
+        el.className = 'forecast-hour';
+
+        const hourSpan = document.createElement('span');
+        hourSpan.className = 'hour';
+        hourSpan.textContent = String(time.getHours()).padStart(2, '0') + 'h';
+        el.appendChild(hourSpan);
+
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'icon';
+        iconSpan.textContent = weather.icon;
+        el.appendChild(iconSpan);
+
+        const tempSpan = document.createElement('span');
+        tempSpan.className = 'temp mono';
+        tempSpan.textContent = Math.round(hourly.temperature_2m[idx]) + '\u00B0';
+        el.appendChild(tempSpan);
+
+        const rainP = hourly.precipitation_probability[idx] || 0;
+        if (rainP > 0) {
+          const rainSpan = document.createElement('span');
+          rainSpan.className = 'rain';
+          rainSpan.textContent = rainP + '%';
+          el.appendChild(rainSpan);
+        }
+
+        container.appendChild(el);
+      }
+    }
+
+    // ===== IMAGEN: GOES-16 Satelite (principal) + RainViewer Radar (fallback) =====
+    async function loadImage() {
+      const baseImg = document.getElementById('radarBase');
+      const overlayImg = document.getElementById('radarOverlay');
+      const placeholder = document.getElementById('camPlaceholder');
+      const timeEl = document.getElementById('camTime');
+      const sourceEl = document.getElementById('camSource');
+      const pad = function(n) { return String(n).padStart(2, '0'); };
+
+      function showTimestamp() {
+        const n = new Date();
+        timeEl.textContent = pad(n.getHours()) + ':' + pad(n.getMinutes());
+      }
+
+      // Intentar GOES-16 satelite primero (imagen del cielo real)
+      const satUrl = CONFIG.satelliteUrl + '?t=' + Date.now();
+
+      baseImg.onload = function() {
+        baseImg.style.display = 'block';
+        overlayImg.style.display = 'none'; // no necesitamos overlay con satelite
+        placeholder.style.display = 'none';
+        sourceEl.textContent = 'Satelite GOES-19';
+        showTimestamp();
+      };
+
+      baseImg.onerror = function() {
+        // Fallback: RainViewer radar + CartoDB basemap
+        loadRadarFallback(overlayImg, baseImg, placeholder, sourceEl, showTimestamp);
+      };
+
+      baseImg.src = satUrl;
+    }
+
+    async function loadRadarFallback(overlayImg, baseImg, placeholder, sourceEl, showTimestamp) {
+      try {
+        // Basemap oscuro
+        baseImg.onload = function() { baseImg.style.display = 'block'; };
+        baseImg.onerror = function() { /* sin basemap */ };
+        baseImg.src = CONFIG.basemapUrl;
+
+        // Radar overlay
+        const res = await fetch(CONFIG.rainviewerApi);
+        if (!res.ok) throw new Error('RainViewer API error');
+        const data = await res.json();
+        const latest = data.radar.past[data.radar.past.length - 1];
+        const radarTileUrl = data.host + latest.path + '/512/'
+          + CONFIG.radarZoom + '/' + CONFIG.radarTileX + '/' + CONFIG.radarTileY
+          + '/4/1_1.png';
+
+        overlayImg.onload = function() {
+          overlayImg.style.display = 'block';
+          placeholder.style.display = 'none';
+          sourceEl.textContent = 'Radar RainViewer';
+          showTimestamp();
+        };
+
+        overlayImg.onerror = function() {
+          placeholder.querySelector('span').textContent = 'Sin datos de radar';
+        };
+
+        overlayImg.src = radarTileUrl;
+      } catch (err) {
+        console.error('Error loading radar:', err);
+        placeholder.querySelector('span').textContent = 'Sin imagen disponible';
+      }
+    }
+
+    // ===== STATUS =====
+    function setOnlineStatus(online) {
+      const dot = document.getElementById('statusDot');
+      const offlineEl = document.getElementById('offlineStatus');
+
+      if (online) {
+        dot.className = 'dot';
+        offlineEl.classList.remove('visible');
+      } else {
+        dot.className = 'dot error';
+        if (state.lastFetch) {
+          const minAgo = Math.round((Date.now() - state.lastFetch.getTime()) / 60000);
+          document.getElementById('staleMinutes').textContent = minAgo;
+          offlineEl.classList.add('visible');
+        }
+      }
+    }
+
+    // ===== WAKE LOCK =====
+    async function requestWakeLock() {
+      if (!('wakeLock' in navigator)) return;
+      try {
+        state.wakeLock = await navigator.wakeLock.request('screen');
+      } catch (err) {
+        console.warn('Wake Lock failed:', err);
+      }
+
+      document.addEventListener('visibilitychange', async function() {
+        if (document.visibilityState === 'visible' && 'wakeLock' in navigator) {
+          try {
+            state.wakeLock = await navigator.wakeLock.request('screen');
+          } catch (e) { /* silently fail */ }
+        }
+      });
+    }
+
+    // ===== FULLSCREEN =====
+    function requestFullscreen() {
+      const el = document.documentElement;
+      const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+      if (fn) fn.call(el);
+    }
+
+    // ===== INIT =====
+    async function init() {
+      const prompt = document.getElementById('fullscreenPrompt');
+      prompt.addEventListener('click', async function() {
+        prompt.classList.add('hidden');
+        requestFullscreen();
+        await requestWakeLock();
+      });
+
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      await fetchWeather();
+      loadImage();
+
+      setInterval(fetchWeather, CONFIG.refreshClimateMs);
+      setInterval(loadImage, CONFIG.refreshImageMs);
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+
+</body>
+</html>
