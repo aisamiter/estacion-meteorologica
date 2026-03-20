@@ -1588,6 +1588,27 @@
       photoSlotA = !photoSlotA;
     }
 
+    function showPrevPhoto() {
+      if (photoUrls.length === 0) return;
+      photoIndex = (photoIndex - 1 + photoUrls.length) % photoUrls.length;
+
+      var imgA = document.getElementById('photoA');
+      var imgB = document.getElementById('photoB');
+      var next = photoSlotA ? imgA : imgB;
+      var prev = photoSlotA ? imgB : imgA;
+
+      next.src = photoUrls[photoIndex];
+      next.onload = function() {
+        next.classList.add('active');
+        prev.classList.remove('active');
+      };
+      next.onerror = function() {
+        showPrevPhoto();
+      };
+
+      photoSlotA = !photoSlotA;
+    }
+
     function updatePhotoClock() {
       var now = new Date();
       var pad = function(n) { return String(n).padStart(2, '0'); };
@@ -1656,9 +1677,67 @@
       setTimeout(function() { fb.className = 'tap-feedback'; }, 1000);
     }
 
-    // Touch to toggle: photos <-> weather (bidirectional)
-    document.addEventListener('click', function(e) {
+    // ===== SWIPE & TAP GESTURES =====
+    var touchStartX = 0;
+    var touchStartY = 0;
+    var touchStartTime = 0;
+    var SWIPE_THRESHOLD = 50;  // min px to count as swipe
+    var SWIPE_MAX_TIME = 400;  // max ms for a swipe
+
+    document.addEventListener('touchstart', function(e) {
       if (e.target.closest('#fullscreenPrompt')) return;
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
+    }, { passive: true });
+
+    document.addEventListener('touchend', function(e) {
+      if (e.target.closest('#fullscreenPrompt')) return;
+      var dx = e.changedTouches[0].clientX - touchStartX;
+      var dy = e.changedTouches[0].clientY - touchStartY;
+      var dt = Date.now() - touchStartTime;
+
+      if (dt > SWIPE_MAX_TIME) {
+        // Too slow — treat as tap
+        handleTap();
+        return;
+      }
+
+      var absDx = Math.abs(dx);
+      var absDy = Math.abs(dy);
+
+      if (absDx < SWIPE_THRESHOLD && absDy < SWIPE_THRESHOLD) {
+        // Too short — treat as tap
+        handleTap();
+        return;
+      }
+
+      if (absDx > absDy) {
+        // Horizontal swipe — navigate photos
+        if (currentMode === 'photo') {
+          if (dx < 0) {
+            showTapFeedback('\u25B6');
+            showNextPhoto();
+          } else {
+            showTapFeedback('\u25C0');
+            showPrevPhoto();
+          }
+        }
+      } else {
+        // Vertical swipe
+        if (dy < 0 && currentMode === 'photo') {
+          // Swipe up — show weather
+          showTapFeedback('\u2600\uFE0F');
+          switchToWeather();
+        } else if (dy > 0 && currentMode === 'weather' && photoUrls.length > 0) {
+          // Swipe down — back to photos
+          showTapFeedback('\uD83D\uDDBC\uFE0F');
+          switchToPhotos();
+        }
+      }
+    }, { passive: true });
+
+    function handleTap() {
       if (currentMode === 'photo') {
         showTapFeedback('\u2600\uFE0F');
         switchToWeather();
@@ -1666,6 +1745,14 @@
         showTapFeedback('\uD83D\uDDBC\uFE0F');
         switchToPhotos();
       }
+    }
+
+    // Fallback for non-touch (desktop testing)
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('#fullscreenPrompt')) return;
+      // Only fire on actual mouse clicks (not touch-generated clicks)
+      if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+      handleTap();
     });
 
     // ===== INIT =====
