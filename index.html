@@ -620,6 +620,21 @@
       box-shadow: 0 0 4px var(--green);
     }
 
+    .focus-badge {
+      position: fixed;
+      top: 6px;
+      right: 8px;
+      font-size: 0.5rem;
+      color: var(--cyan);
+      font-family: 'Share Tech Mono', monospace;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 10;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .focus-badge.visible { opacity: 0.6; }
+
     .source-indicator .dot.error {
       background: var(--red);
       box-shadow: 0 0 4px var(--red);
@@ -848,6 +863,9 @@
 
   <!-- Alert banner -->
   <div class="alert-banner" id="alertBanner"></div>
+
+  <!-- Focus mode badge -->
+  <div class="focus-badge" id="focusBadge">focus</div>
 
   <!-- Source indicator -->
   <div class="source-indicator">
@@ -1753,14 +1771,17 @@
       }
     }
 
-    // Mode cycling: photos (270s) -> weather (30s) -> photos ...
-    var MODE_PHOTO_DURATION = 270 * 1000;  // 4.5 minutes of photos
-    var MODE_WEATHER_DURATION = 30 * 1000; // 30 seconds of weather
+    // ===== MODE MANAGEMENT =====
+    // Modes: 'photo' (portarretratos), 'weather' (30s peek), 'focus' (estacion full permanente)
+    var MODE_PHOTO_DURATION = 270 * 1000;
+    var MODE_WEATHER_DURATION = 30 * 1000;
     var modeTimer = null;
-    var currentMode = 'weather'; // 'photo' or 'weather'
+    var currentMode = 'weather';
+    var focusMode = false;
 
     function switchToPhotos() {
       if (photoUrls.length === 0) return;
+      focusMode = false;
       currentMode = 'photo';
       startPhotoMode();
       if (modeTimer) clearTimeout(modeTimer);
@@ -1771,9 +1792,27 @@
       currentMode = 'weather';
       stopPhotoMode();
       if (modeTimer) clearTimeout(modeTimer);
-      if (photoUrls.length > 0) {
+      if (!focusMode && photoUrls.length > 0) {
         modeTimer = setTimeout(switchToPhotos, MODE_WEATHER_DURATION);
       }
+    }
+
+    function enterFocusMode() {
+      focusMode = true;
+      currentMode = 'weather';
+      stopPhotoMode();
+      if (modeTimer) clearTimeout(modeTimer);
+      showTapFeedback('\uD83D\uDD2D');
+      var badge = document.getElementById('focusBadge');
+      if (badge) badge.classList.add('visible');
+    }
+
+    function exitFocusMode() {
+      focusMode = false;
+      var badge = document.getElementById('focusBadge');
+      if (badge) badge.classList.remove('visible');
+      showTapFeedback('\uD83D\uDDBC\uFE0F');
+      switchToPhotos();
     }
 
     function startModeCycle() {
@@ -1782,7 +1821,7 @@
       }
     }
 
-    // Tap feedback animation
+    // ===== TAP FEEDBACK =====
     function showTapFeedback(icon) {
       var fb = document.getElementById('tapFeedback');
       fb.textContent = icon;
@@ -1791,12 +1830,47 @@
       setTimeout(function() { fb.className = 'tap-feedback'; }, 1000);
     }
 
-    // ===== SWIPE & TAP GESTURES =====
+    // ===== DOUBLE TAP DETECTION =====
+    var lastTapTime = 0;
+    var DOUBLE_TAP_DELAY = 350; // ms between taps to count as double
+
+    function handleTap() {
+      var now = Date.now();
+      var timeSinceLastTap = now - lastTapTime;
+      lastTapTime = now;
+
+      if (timeSinceLastTap < DOUBLE_TAP_DELAY) {
+        // Double tap detected
+        lastTapTime = 0; // reset to prevent triple-tap
+        if (focusMode) {
+          exitFocusMode();
+        } else {
+          enterFocusMode();
+        }
+        return;
+      }
+
+      // Wait to see if it's a double tap before acting on single tap
+      setTimeout(function() {
+        // If lastTapTime changed, a second tap happened — skip single tap action
+        if (lastTapTime !== now) return;
+
+        if (currentMode === 'photo') {
+          showTapFeedback('\u2600\uFE0F');
+          switchToWeather();
+        } else if (currentMode === 'weather' && !focusMode && photoUrls.length > 0) {
+          showTapFeedback('\uD83D\uDDBC\uFE0F');
+          switchToPhotos();
+        }
+      }, DOUBLE_TAP_DELAY);
+    }
+
+    // ===== SWIPE GESTURES =====
     var touchStartX = 0;
     var touchStartY = 0;
     var touchStartTime = 0;
-    var SWIPE_THRESHOLD = 50;  // min px to count as swipe
-    var SWIPE_MAX_TIME = 400;  // max ms for a swipe
+    var SWIPE_THRESHOLD = 50;
+    var SWIPE_MAX_TIME = 400;
 
     document.addEventListener('touchstart', function(e) {
       if (e.target.closest('#fullscreenPrompt')) return;
@@ -1812,7 +1886,6 @@
       var dt = Date.now() - touchStartTime;
 
       if (dt > SWIPE_MAX_TIME) {
-        // Too slow — treat as tap
         handleTap();
         return;
       }
@@ -1821,13 +1894,11 @@
       var absDy = Math.abs(dy);
 
       if (absDx < SWIPE_THRESHOLD && absDy < SWIPE_THRESHOLD) {
-        // Too short — treat as tap
         handleTap();
         return;
       }
 
       if (absDx > absDy) {
-        // Horizontal swipe — navigate photos
         if (currentMode === 'photo') {
           if (dx < 0) {
             showTapFeedback('\u25B6');
@@ -1838,33 +1909,19 @@
           }
         }
       } else {
-        // Vertical swipe
         if (dy < 0 && currentMode === 'photo') {
-          // Swipe up — show weather
           showTapFeedback('\u2600\uFE0F');
           switchToWeather();
-        } else if (dy > 0 && currentMode === 'weather' && photoUrls.length > 0) {
-          // Swipe down — back to photos
+        } else if (dy > 0 && currentMode === 'weather' && !focusMode && photoUrls.length > 0) {
           showTapFeedback('\uD83D\uDDBC\uFE0F');
           switchToPhotos();
         }
       }
     }, { passive: true });
 
-    function handleTap() {
-      if (currentMode === 'photo') {
-        showTapFeedback('\u2600\uFE0F');
-        switchToWeather();
-      } else if (currentMode === 'weather' && photoUrls.length > 0) {
-        showTapFeedback('\uD83D\uDDBC\uFE0F');
-        switchToPhotos();
-      }
-    }
-
-    // Fallback for non-touch (desktop testing)
+    // Desktop fallback
     document.addEventListener('click', function(e) {
       if (e.target.closest('#fullscreenPrompt')) return;
-      // Only fire on actual mouse clicks (not touch-generated clicks)
       if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
       handleTap();
     });
