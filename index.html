@@ -490,6 +490,16 @@
       z-index: 2;
     }
 
+    .photo-counter {
+      position: absolute;
+      bottom: 1.5vh;
+      left: 2vw;
+      font-size: 1.8vw;
+      color: rgba(255, 255, 255, 0.3);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      z-index: 2;
+    }
+
     /* ===== CHARACTER MASCOTS ===== */
     .mascot-overlay {
       position: fixed;
@@ -773,6 +783,7 @@
   <div class="photo-frame" id="photoFrame">
     <img id="photoA" class="photo-img active" alt="">
     <img id="photoB" class="photo-img" alt="">
+    <div class="photo-counter mono" id="photoCounter"></div>
     <div class="photo-clock mono" id="photoClock">--:--</div>
   </div>
 
@@ -1566,6 +1577,19 @@
       }
     }
 
+    function updatePhotoCounter() {
+      var el = document.getElementById('photoCounter');
+      if (el && photoUrls.length > 0) {
+        el.textContent = (photoIndex + 1) + ' / ' + photoUrls.length;
+      }
+    }
+
+    function preloadPhoto(index) {
+      if (photoUrls.length === 0) return;
+      var img = new Image();
+      img.src = photoUrls[index % photoUrls.length];
+    }
+
     function showNextPhoto() {
       if (photoUrls.length === 0) return;
       photoIndex = (photoIndex + 1) % photoUrls.length;
@@ -1579,9 +1603,10 @@
       next.onload = function() {
         next.classList.add('active');
         prev.classList.remove('active');
+        updatePhotoCounter();
+        preloadPhoto(photoIndex + 1);
       };
       next.onerror = function() {
-        // Skip broken image, try next
         showNextPhoto();
       };
 
@@ -1601,6 +1626,8 @@
       next.onload = function() {
         next.classList.add('active');
         prev.classList.remove('active');
+        updatePhotoCounter();
+        preloadPhoto(photoIndex - 1 + photoUrls.length);
       };
       next.onerror = function() {
         showPrevPhoto();
@@ -1624,6 +1651,8 @@
         var imgA = document.getElementById('photoA');
         imgA.src = photoUrls[photoIndex];
         imgA.classList.add('active');
+        updatePhotoCounter();
+        preloadPhoto(photoIndex + 1);
       }
       // Rotate every 15 seconds
       if (photoInterval) clearInterval(photoInterval);

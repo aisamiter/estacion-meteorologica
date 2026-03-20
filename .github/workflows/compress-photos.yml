@@ -1,0 +1,44 @@
+name: Auto-compress photos
+
+on:
+  push:
+    paths:
+      - 'photos/**'
+
+jobs:
+  compress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install sharp-cli
+        run: npm install -g sharp-cli
+
+      - name: Compress new/changed photos
+        run: |
+          changed=false
+          for f in photos/*.jpg photos/*.jpeg photos/*.png; do
+            [ -f "$f" ] || continue
+            size=$(stat -c%s "$f")
+            # Only compress if larger than 500KB
+            if [ "$size" -gt 512000 ]; then
+              echo "Compressing $f ($size bytes)"
+              npx sharp-cli -i "$f" -o "$f.tmp" resize 2400 1080 --fit inside --withoutEnlargement
+              mv "$f.tmp" "$f"
+              changed=true
+            fi
+          done
+          echo "changed=$changed" >> $GITHUB_ENV
+
+      - name: Commit compressed photos
+        if: env.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add photos/
+          git commit -m "chore: auto-compress photos to 2400x1080"
+          git push
