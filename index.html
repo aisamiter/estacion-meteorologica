@@ -727,7 +727,7 @@
     }
     .face-selector-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(6, 1fr);
       gap: 2vw;
       padding: 0 5vw;
     }
@@ -1010,6 +1010,60 @@
       text-shadow: 0 1px 6px rgba(0,0,0,0.8);
     }
 
+    /* ===== FACE: FEDE (layout alternativo — radar grande a la derecha) ===== */
+    body.face-fede .dashboard {
+      grid-template-columns: 1fr 1fr 2fr;
+      grid-template-rows: auto auto auto auto;
+    }
+    body.face-fede #widgetClock { grid-row: 1; grid-column: 1 / 3; }
+    body.face-fede #widgetCam { grid-row: 1 / 4; grid-column: 3; }
+    body.face-fede #widgetTemp { grid-row: 2; grid-column: 1; }
+    body.face-fede #widgetHumid { grid-row: 2; grid-column: 2; }
+    body.face-fede #widgetWind { grid-row: 3; grid-column: 1; }
+    body.face-fede #widgetPressure { grid-row: 3; grid-column: 2; display: flex; }
+    body.face-fede #widgetAstro { display: none; }
+    body.face-fede #widgetAir { display: none; }
+    body.face-fede #forecastRow {
+      grid-row: 4; grid-column: 1 / -1;
+      grid-template-columns: repeat(12, 1fr);
+    }
+
+    /* ===== BATTERY INDICATOR ===== */
+    .battery-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      font-size: 0.48rem;
+      color: var(--text-dim);
+    }
+    .battery-icon .bar {
+      display: inline-block;
+      width: 16px;
+      height: 7px;
+      border: 1px solid var(--text-dim);
+      border-radius: 2px;
+      position: relative;
+      overflow: hidden;
+    }
+    .battery-icon .bar::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 1px;
+      width: 2px;
+      height: 3px;
+      background: var(--text-dim);
+      border-radius: 0 1px 1px 0;
+    }
+    .battery-icon .fill {
+      display: block;
+      height: 100%;
+      background: var(--green);
+      transition: width 1s ease;
+    }
+    .battery-icon .fill.low { background: var(--red); }
+    .battery-icon .fill.mid { background: var(--orange); }
+
     /* ===== TAP FEEDBACK ===== */
     .tap-feedback {
       position: fixed;
@@ -1262,6 +1316,7 @@
     <span class="dot" id="statusDot"></span>
     <span>open-meteo</span>
     <span id="lastUpdate">--:--</span>
+    <span id="batteryIndicator"></span>
   </div>
 
   <!-- Offline status -->
@@ -2333,7 +2388,7 @@
     });
 
     // ===== FACE SYSTEM =====
-    var FACES = ['dashboard', 'minimal', 'satellite', 'retro', 'family'];
+    var FACES = ['dashboard', 'fede', 'minimal', 'satellite', 'retro', 'family'];
     var currentFaceIndex = 0;
     var tripleTapCount = 0;
     var tripleTapTimer = null;
@@ -2369,6 +2424,7 @@
     // ===== FACE SELECTOR MENU =====
     var FACE_META = [
       { name: 'dashboard', icon: '\uD83D\uDCCA', label: 'Dashboard', desc: 'Todos los datos' },
+      { name: 'fede', icon: '\uD83D\uDCF9', label: 'Fede', desc: 'Radar grande' },
       { name: 'minimal', icon: '\uD83D\uDD70\uFE0F', label: 'Minimal', desc: 'Reloj + temp' },
       { name: 'satellite', icon: '\uD83C\uDF0D', label: 'Satelite', desc: 'GOES-19 fullscreen' },
       { name: 'retro', icon: '\uD83D\uDDA5\uFE0F', label: 'Retro', desc: 'Terminal verde' },
@@ -2548,6 +2604,29 @@
     // Update face data every second (for clocks) + on weather fetch
     setInterval(updateFaceData, 1000);
 
+    // ===== BATTERY =====
+    function updateBatteryUI(battery) {
+      var el = document.getElementById('batteryIndicator');
+      if (!el) return;
+      var pct = Math.round(battery.level * 100);
+      var charging = battery.charging;
+      var colorClass = pct <= 20 ? 'low' : pct <= 50 ? 'mid' : '';
+      el.innerHTML = '<span class="battery-icon">' +
+        '<span class="bar"><span class="fill ' + colorClass + '" style="width:' + pct + '%"></span></span> ' +
+        pct + '%' + (charging ? ' \u26A1' : '') +
+        '</span>';
+    }
+
+    async function initBattery() {
+      if (!navigator.getBattery) return;
+      try {
+        var battery = await navigator.getBattery();
+        updateBatteryUI(battery);
+        battery.addEventListener('levelchange', function() { updateBatteryUI(battery); });
+        battery.addEventListener('chargingchange', function() { updateBatteryUI(battery); });
+      } catch(e) { /* Battery API not supported */ }
+    }
+
     // ===== INIT =====
     async function init() {
       var prompt = document.getElementById('fullscreenPrompt');
@@ -2599,6 +2678,9 @@
 
       // Character mascots during weather mode
       setInterval(showMascot, 5 * 60 * 1000);
+
+      // Battery indicator
+      initBattery();
 
       // Preventive reload every 6 hours
       setTimeout(function() { location.reload(); }, 6 * 3600 * 1000);
