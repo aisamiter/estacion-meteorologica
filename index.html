@@ -688,6 +688,258 @@
 
     .fullscreen-prompt.hidden { display: none; }
 
+    /* ===== FACE SYSTEM ===== */
+    .face-indicator {
+      position: fixed;
+      bottom: 6px;
+      right: 8px;
+      font-size: 0.45rem;
+      color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .face-indicator.visible { opacity: 0.7; }
+
+    /* ===== FACE: MINIMAL ===== */
+    .minimal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: #000;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1vh;
+    }
+    body.face-minimal .dashboard { display: none; }
+    body.face-minimal .source-indicator { display: none; }
+    body.face-minimal .minimal-overlay { display: flex; }
+
+    .minimal-time {
+      font-size: 22vw;
+      font-weight: 300;
+      color: #fff;
+      line-height: 1;
+      font-family: 'Exo 2', sans-serif;
+    }
+    .minimal-date {
+      font-size: 2.5vw;
+      color: var(--text-mid);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      font-weight: 600;
+    }
+    .minimal-weather {
+      display: flex;
+      align-items: center;
+      gap: 2vw;
+      margin-top: 1vh;
+    }
+    .minimal-temp {
+      font-size: 10vw;
+      font-weight: 300;
+      color: var(--cyan);
+      line-height: 1;
+    }
+    .minimal-condition { font-size: 3vw; color: var(--text-light); }
+    .minimal-icon { font-size: 6vw; }
+
+    /* ===== FACE: SATELLITE ===== */
+    .satellite-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: #000;
+    }
+    body.face-satellite .dashboard { display: none; }
+    body.face-satellite .source-indicator { display: none; }
+    body.face-satellite .satellite-overlay { display: block; }
+
+    .satellite-overlay .sat-img { width: 100%; height: 100%; object-fit: cover; }
+    .satellite-overlay .sat-data {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 1.5vh 2vw;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85) 40%);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+    .satellite-overlay .sat-clock {
+      font-size: 6vw;
+      font-weight: 300;
+      color: #fff;
+      font-family: 'Exo 2', sans-serif;
+    }
+    .satellite-overlay .sat-temp { font-size: 5vw; color: var(--cyan); margin-left: 2vw; }
+    .satellite-overlay .sat-condition { font-size: 2vw; color: var(--text-light); margin-left: 1vw; }
+    .satellite-overlay .sat-right {
+      text-align: right;
+      font-size: 1.5vw;
+      color: var(--text-mid);
+      line-height: 1.8;
+    }
+    .satellite-overlay .sat-marker {
+      position: absolute;
+      left: 36%; top: 55%;
+      width: 8px; height: 8px;
+      background: var(--red);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--red), 0 0 16px rgba(255,34,68,0.5);
+      animation: marker-pulse 2s ease-in-out infinite;
+    }
+
+    /* ===== FACE: RETRO ===== */
+    .retro-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: #0a0a0a;
+      padding: 2vh 3vw;
+      font-family: 'Share Tech Mono', monospace;
+      color: #33ff33;
+      overflow: hidden;
+    }
+    body.face-retro .dashboard { display: none; }
+    body.face-retro .source-indicator { display: none; }
+    body.face-retro .retro-overlay { display: block; }
+
+    .retro-overlay::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 3px);
+      pointer-events: none;
+      z-index: 1;
+    }
+    .retro-header {
+      font-size: 1.2vw;
+      border-bottom: 1px solid #1a3a1a;
+      padding-bottom: 0.5vh;
+      margin-bottom: 1vh;
+      display: flex;
+      justify-content: space-between;
+    }
+    .retro-big {
+      font-size: 14vw;
+      text-align: center;
+      line-height: 1;
+      margin: 0.5vh 0;
+      text-shadow: 0 0 20px rgba(51,255,51,0.3);
+    }
+    .retro-date { font-size: 2.5vw; text-align: center; color: #1a8a1a; }
+    .retro-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2vw;
+      font-size: 1.6vw;
+      line-height: 2;
+      margin-top: 1.5vh;
+    }
+    .retro-label { color: #1a8a1a; }
+    .retro-val { color: #33ff33; }
+    .retro-prompt {
+      position: absolute;
+      bottom: 2vh; left: 3vw;
+      font-size: 1.2vw;
+      color: #1a8a1a;
+    }
+    .retro-cursor {
+      display: inline-block;
+      width: 0.8vw; height: 1.6vw;
+      background: #33ff33;
+      animation: blink-cursor 1s step-end infinite;
+      vertical-align: middle;
+      margin-left: 0.3vw;
+    }
+    @keyframes blink-cursor {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+
+    /* ===== FACE: FAMILY ===== */
+    .family-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      background: #000;
+    }
+    body.face-family .dashboard { display: none; }
+    body.face-family .source-indicator { display: none; }
+    body.face-family .family-overlay { display: block; }
+
+    .family-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.4);
+      transition: opacity 1.5s ease;
+    }
+    .family-data {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 2vh 3vw;
+      z-index: 2;
+    }
+    .family-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .family-clock {
+      font-size: 10vw;
+      font-weight: 300;
+      color: rgba(255,255,255,0.9);
+      text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+      font-family: 'Exo 2', sans-serif;
+      line-height: 1;
+    }
+    .family-temp {
+      font-size: 8vw;
+      font-weight: 300;
+      color: rgba(255,255,255,0.85);
+      text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+      line-height: 1;
+    }
+    .family-condition {
+      font-size: 2.5vw;
+      color: rgba(255,255,255,0.6);
+      text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+      text-align: right;
+    }
+    .family-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .family-date {
+      font-size: 2vw;
+      color: rgba(255,255,255,0.4);
+      text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .family-details {
+      display: flex;
+      gap: 3vw;
+      font-size: 1.8vw;
+      color: rgba(255,255,255,0.45);
+      text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+    }
+
     /* ===== TAP FEEDBACK ===== */
     .tap-feedback {
       position: fixed;
@@ -838,6 +1090,66 @@
     <div class="row-bottom" id="forecastRow"></div>
 
   </div>
+
+  <!-- FACE: MINIMAL -->
+  <div class="minimal-overlay" id="minimalOverlay">
+    <div class="minimal-time" id="minimalTime">--:--</div>
+    <div class="minimal-date" id="minimalDate"></div>
+    <div class="minimal-weather">
+      <span class="minimal-icon" id="minimalIcon"></span>
+      <span class="minimal-temp" id="minimalTemp">--</span>
+      <span class="minimal-condition" id="minimalCondition"></span>
+    </div>
+  </div>
+
+  <!-- FACE: SATELLITE -->
+  <div class="satellite-overlay" id="satelliteOverlay">
+    <img class="sat-img" id="satImg" alt="GOES-19">
+    <div class="sat-marker"></div>
+    <div class="sat-data">
+      <div class="sat-left" style="display:flex;align-items:baseline;">
+        <span class="sat-clock" id="satClock">--:--</span>
+        <span class="sat-temp" id="satTemp">--°</span>
+        <span class="sat-condition" id="satCondition"></span>
+      </div>
+      <div class="sat-right" id="satRight"></div>
+    </div>
+  </div>
+
+  <!-- FACE: RETRO -->
+  <div class="retro-overlay" id="retroOverlay">
+    <div class="retro-header">
+      <span>WEATHER_STATION v1.0 // BUENOS_AIRES</span>
+      <span id="retroHeaderTime"></span>
+    </div>
+    <div class="retro-big" id="retroTime">--:--</div>
+    <div class="retro-date" id="retroDate"></div>
+    <div class="retro-grid" id="retroGrid"></div>
+    <div class="retro-prompt">root@weather:~$ <span class="retro-cursor"></span></div>
+  </div>
+
+  <!-- FACE: FAMILY -->
+  <div class="family-overlay" id="familyOverlay">
+    <img class="family-bg" id="familyBg" alt="">
+    <div class="family-data">
+      <div class="family-top">
+        <div>
+          <div class="family-clock" id="familyClock">--:--</div>
+          <div class="family-date" id="familyDate"></div>
+        </div>
+        <div style="text-align:right">
+          <div class="family-temp" id="familyTemp">--°</div>
+          <div class="family-condition" id="familyCondition"></div>
+        </div>
+      </div>
+      <div class="family-bottom">
+        <div class="family-details" id="familyDetails"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Face indicator -->
+  <div class="face-indicator" id="faceIndicator"></div>
 
   <!-- PHOTO FRAME (primary mode) -->
   <div class="photo-frame" id="photoFrame">
@@ -1027,6 +1339,7 @@
         state.weatherData = data;
         state.lastFetch = new Date();
         updateAllWidgets(data);
+        updateFaceData();
         checkAlerts(data);
         setOnlineStatus(true);
       } catch (err) {
@@ -1865,21 +2178,36 @@
       }, DOUBLE_TAP_DELAY);
     }
 
-    // ===== SWIPE GESTURES =====
+    // ===== SWIPE & LONG PRESS GESTURES =====
     var touchStartX = 0;
     var touchStartY = 0;
     var touchStartTime = 0;
     var SWIPE_THRESHOLD = 50;
     var SWIPE_MAX_TIME = 400;
+    var LONG_PRESS_TIME = 800;
+    var longPressTimer = null;
+    var longPressTriggered = false;
 
     document.addEventListener('touchstart', function(e) {
       if (e.target.closest('#fullscreenPrompt')) return;
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       touchStartTime = Date.now();
+      longPressTriggered = false;
+      longPressTimer = setTimeout(function() {
+        longPressTriggered = true;
+        nextFace();
+      }, LONG_PRESS_TIME);
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function() {
+      // Cancel long press if finger moves
+      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     }, { passive: true });
 
     document.addEventListener('touchend', function(e) {
+      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+      if (longPressTriggered) { longPressTriggered = false; return; }
       if (e.target.closest('#fullscreenPrompt')) return;
       var dx = e.changedTouches[0].clientX - touchStartX;
       var dy = e.changedTouches[0].clientY - touchStartY;
@@ -1926,6 +2254,132 @@
       handleTap();
     });
 
+    // ===== FACE SYSTEM =====
+    var FACES = ['dashboard', 'minimal', 'satellite', 'retro', 'family'];
+    var currentFaceIndex = 0;
+    var tripleTapCount = 0;
+    var tripleTapTimer = null;
+
+    function setFace(index) {
+      currentFaceIndex = index;
+      var face = FACES[index];
+      // Remove all face classes
+      FACES.forEach(function(f) { document.body.classList.remove('face-' + f); });
+      // Add current (dashboard has no class — it's the default)
+      if (face !== 'dashboard') {
+        document.body.classList.add('face-' + face);
+      }
+      // Show indicator briefly
+      var indicator = document.getElementById('faceIndicator');
+      if (indicator) {
+        indicator.textContent = face;
+        indicator.classList.add('visible');
+        setTimeout(function() { indicator.classList.remove('visible'); }, 2000);
+      }
+      // Update face-specific data
+      updateFaceData();
+      // Save to URL
+      var url = new URL(window.location);
+      url.searchParams.set('face', face);
+      history.replaceState(null, '', url);
+    }
+
+    function nextFace() {
+      setFace((currentFaceIndex + 1) % FACES.length);
+    }
+
+    function handleTripleTap() {
+      tripleTapCount++;
+      if (tripleTapTimer) clearTimeout(tripleTapTimer);
+      if (tripleTapCount >= 3) {
+        tripleTapCount = 0;
+        showTapFeedback('\uD83C\uDFA8');
+        nextFace();
+        return;
+      }
+      tripleTapTimer = setTimeout(function() { tripleTapCount = 0; }, 500);
+    }
+
+    function updateFaceData() {
+      var data = state.weatherData;
+      if (!data) return;
+      var c = data.current;
+      var d = data.daily;
+      var daytime = isDaytime(d.sunrise[0], d.sunset[0]);
+      var weather = getWeatherInfo(c.weather_code, daytime);
+      var now = new Date();
+      var pad = function(n) { return String(n).padStart(2, '0'); };
+      var timeStr = pad(now.getHours()) + ':' + pad(now.getMinutes());
+      var dateStr = now.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+      // MINIMAL
+      var mt = document.getElementById('minimalTime');
+      if (mt) mt.textContent = timeStr;
+      var md = document.getElementById('minimalDate');
+      if (md) md.textContent = dateStr;
+      var mtp = document.getElementById('minimalTemp');
+      if (mtp) mtp.textContent = Math.round(c.temperature_2m) + '\u00B0';
+      var mi = document.getElementById('minimalIcon');
+      if (mi) mi.textContent = weather.icon;
+      var mc = document.getElementById('minimalCondition');
+      if (mc) mc.textContent = weather.text;
+
+      // SATELLITE
+      var sc = document.getElementById('satClock');
+      if (sc) sc.textContent = timeStr;
+      var st = document.getElementById('satTemp');
+      if (st) st.textContent = Math.round(c.temperature_2m) + '\u00B0';
+      var sco = document.getElementById('satCondition');
+      if (sco) sco.textContent = weather.icon + ' ' + weather.text;
+      var sr = document.getElementById('satRight');
+      if (sr) sr.innerHTML = 'Humedad: ' + Math.round(c.relative_humidity_2m) + '%<br>Viento: ' + Math.round(c.wind_speed_10m) + ' km/h<br>Presion: ' + Math.round(c.surface_pressure) + ' hPa';
+      // Set satellite image
+      var si = document.getElementById('satImg');
+      if (si && !si.src.includes('nesdis')) {
+        si.src = 'https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/ssa/GEOCOLOR/latest.jpg';
+      }
+
+      // RETRO
+      var rt = document.getElementById('retroTime');
+      if (rt) rt.textContent = timeStr;
+      var rht = document.getElementById('retroHeaderTime');
+      if (rht) rht.textContent = timeStr + ':' + pad(now.getSeconds());
+      var rd = document.getElementById('retroDate');
+      if (rd) rd.textContent = dateStr.toUpperCase();
+      var rg = document.getElementById('retroGrid');
+      if (rg) {
+        rg.innerHTML =
+          '<div><span class="retro-label">TEMP:</span> <span class="retro-val">' + Math.round(c.temperature_2m) + 'C</span></div>' +
+          '<div><span class="retro-label">HUMID:</span> <span class="retro-val">' + Math.round(c.relative_humidity_2m) + '%</span></div>' +
+          '<div><span class="retro-label">WIND:</span> <span class="retro-val">' + Math.round(c.wind_speed_10m) + 'km/h ' + windDirection(c.wind_direction_10m) + '</span></div>' +
+          '<div><span class="retro-label">PRESS:</span> <span class="retro-val">' + Math.round(c.surface_pressure) + 'hPa</span></div>' +
+          '<div><span class="retro-label">UV:</span> <span class="retro-val">' + Math.round(c.uv_index) + '</span></div>' +
+          '<div><span class="retro-label">RAIN:</span> <span class="retro-val">' + (d.precipitation_probability_max[0] || 0) + '%</span></div>' +
+          '<div><span class="retro-label">MIN:</span> <span class="retro-val">' + Math.round(d.temperature_2m_min[0]) + 'C</span></div>' +
+          '<div><span class="retro-label">MAX:</span> <span class="retro-val">' + Math.round(d.temperature_2m_max[0]) + 'C</span></div>';
+      }
+
+      // FAMILY
+      var fc = document.getElementById('familyClock');
+      if (fc) fc.textContent = timeStr;
+      var fdt = document.getElementById('familyDate');
+      if (fdt) fdt.textContent = dateStr;
+      var ft = document.getElementById('familyTemp');
+      if (ft) ft.textContent = Math.round(c.temperature_2m) + '\u00B0';
+      var fco = document.getElementById('familyCondition');
+      if (fco) fco.textContent = weather.icon + ' ' + weather.text;
+      var fd = document.getElementById('familyDetails');
+      if (fd) fd.innerHTML = 'Humedad ' + Math.round(c.relative_humidity_2m) + '% &nbsp; Viento ' + Math.round(c.wind_speed_10m) + ' km/h &nbsp; UV ' + Math.round(c.uv_index);
+      // Set family background from current photo
+      var fbg = document.getElementById('familyBg');
+      if (fbg && photoUrls.length > 0 && !fbg.src.includes(photoUrls[photoIndex])) {
+        fbg.src = photoUrls[photoIndex];
+      }
+    }
+
+    // Update face data every second (for clocks) + on weather fetch
+    setInterval(updateFaceData, 1000);
+
     // ===== INIT =====
     async function init() {
       var prompt = document.getElementById('fullscreenPrompt');
@@ -1956,6 +2410,12 @@
       // Load photos and start mode cycling
       await loadPhotoList();
       startModeCycle();
+
+      // Load face from URL param
+      var urlFace = new URLSearchParams(window.location.search).get('face');
+      if (urlFace && FACES.indexOf(urlFace) !== -1) {
+        setFace(FACES.indexOf(urlFace));
+      }
 
       // Character mascots during weather mode
       setInterval(showMascot, 5 * 60 * 1000);
