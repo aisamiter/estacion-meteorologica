@@ -1597,33 +1597,40 @@
     // Mode cycling: photos (270s) -> weather (30s) -> photos ...
     var MODE_PHOTO_DURATION = 270 * 1000;  // 4.5 minutes of photos
     var MODE_WEATHER_DURATION = 30 * 1000; // 30 seconds of weather
+    var modeTimer = null;
+    var currentMode = 'weather'; // 'photo' or 'weather'
 
-    function startModeCycle() {
-      // Start in photo mode
+    function switchToPhotos() {
+      if (photoUrls.length === 0) return;
+      currentMode = 'photo';
+      startPhotoMode();
+      if (modeTimer) clearTimeout(modeTimer);
+      modeTimer = setTimeout(switchToWeather, MODE_PHOTO_DURATION);
+    }
+
+    function switchToWeather() {
+      currentMode = 'weather';
+      stopPhotoMode();
+      if (modeTimer) clearTimeout(modeTimer);
       if (photoUrls.length > 0) {
-        startPhotoMode();
-      }
-
-      function cycle() {
-        if (photoUrls.length === 0) return; // no photos, stay on weather
-
-        // Switch to weather dashboard
-        stopPhotoMode();
-
-        // After 30s, switch back to photos
-        setTimeout(function() {
-          startPhotoMode();
-
-          // After 4.5 min of photos, switch to weather again
-          setTimeout(cycle, MODE_PHOTO_DURATION);
-        }, MODE_WEATHER_DURATION);
-      }
-
-      // First switch to weather after 4.5 min
-      if (photoUrls.length > 0) {
-        setTimeout(cycle, MODE_PHOTO_DURATION);
+        modeTimer = setTimeout(switchToPhotos, MODE_WEATHER_DURATION);
       }
     }
+
+    function startModeCycle() {
+      if (photoUrls.length > 0) {
+        switchToPhotos();
+      }
+    }
+
+    // Touch to toggle: if in photos -> show weather 30s, if in weather -> back to photos
+    document.addEventListener('click', function(e) {
+      // Ignore clicks on fullscreen prompt
+      if (e.target.closest('#fullscreenPrompt')) return;
+      if (currentMode === 'photo') {
+        switchToWeather();
+      }
+    });
 
     // ===== INIT =====
     async function init() {
