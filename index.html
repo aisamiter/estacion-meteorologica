@@ -470,15 +470,60 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: cover;
       background: #000;
       opacity: 0;
       transition: opacity 1.5s ease;
+      will-change: transform, opacity;
     }
 
     .photo-img.active {
       opacity: 1;
     }
+
+    /* Ken Burns: 4 random variants, each 15s */
+    .photo-img.kb-1 { animation: kb1 15s ease-in-out forwards; }
+    .photo-img.kb-2 { animation: kb2 15s ease-in-out forwards; }
+    .photo-img.kb-3 { animation: kb3 15s ease-in-out forwards; }
+    .photo-img.kb-4 { animation: kb4 15s ease-in-out forwards; }
+
+    @keyframes kb1 {
+      from { transform: scale(1.0) translate(0, 0); }
+      to   { transform: scale(1.15) translate(-2%, -1%); }
+    }
+    @keyframes kb2 {
+      from { transform: scale(1.05) translate(-2%, 1%); }
+      to   { transform: scale(1.0) translate(1%, -1%); }
+    }
+    @keyframes kb3 {
+      from { transform: scale(1.0) translate(1%, 0); }
+      to   { transform: scale(1.12) translate(-1%, 2%); }
+    }
+    @keyframes kb4 {
+      from { transform: scale(1.12) translate(0, -1%); }
+      to   { transform: scale(1.0) translate(2%, 1%); }
+    }
+
+    /* Swipe hint arrows */
+    .swipe-hints {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    .swipe-hints.visible { opacity: 1; }
+
+    .swipe-hint-arrow {
+      position: absolute;
+      color: rgba(255,255,255,0.4);
+      font-size: 4vw;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+    }
+    .swipe-hint-arrow.left { left: 2vw; top: 50%; transform: translateY(-50%); }
+    .swipe-hint-arrow.right { right: 2vw; top: 50%; transform: translateY(-50%); }
+    .swipe-hint-arrow.up { top: 2vh; left: 50%; transform: translateX(-50%); }
 
     .photo-clock {
       position: absolute;
@@ -783,6 +828,11 @@
   <div class="photo-frame" id="photoFrame">
     <img id="photoA" class="photo-img active" alt="">
     <img id="photoB" class="photo-img" alt="">
+    <div class="swipe-hints" id="swipeHints">
+      <span class="swipe-hint-arrow left">\u25C0</span>
+      <span class="swipe-hint-arrow right">\u25B6</span>
+      <span class="swipe-hint-arrow up">\u25B2 clima</span>
+    </div>
     <div class="photo-counter mono" id="photoCounter"></div>
     <div class="photo-clock mono" id="photoClock">--:--</div>
   </div>
@@ -1565,13 +1615,25 @@
     var photoSlotA = true; // toggle between A and B for crossfade
     var photoInterval = null;
 
+    // Fisher-Yates shuffle
+    function shuffleArray(arr) {
+      var shuffled = arr.slice();
+      for (var i = shuffled.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = shuffled[i];
+        shuffled[i] = shuffled[j];
+        shuffled[j] = tmp;
+      }
+      return shuffled;
+    }
+
     async function loadPhotoList() {
       try {
         var res = await fetch('photos.json?t=' + Date.now());
         if (!res.ok) return;
         var data = await res.json();
-        // Filter out placeholder URLs
-        photoUrls = data.filter(function(u) { return u && u.indexOf('REEMPLAZA') === -1; });
+        var filtered = data.filter(function(u) { return u && u.indexOf('REEMPLAZA') === -1; });
+        photoUrls = shuffleArray(filtered);
       } catch (e) {
         console.warn('No photos.json found or invalid:', e);
       }
@@ -1590,9 +1652,20 @@
       img.src = photoUrls[index % photoUrls.length];
     }
 
+    var kbVariants = ['kb-1', 'kb-2', 'kb-3', 'kb-4'];
+    function applyKenBurns(imgEl) {
+      // Remove old KB classes
+      kbVariants.forEach(function(c) { imgEl.classList.remove(c); });
+      // Force reflow to restart animation
+      void imgEl.offsetWidth;
+      imgEl.classList.add(kbVariants[Math.floor(Math.random() * kbVariants.length)]);
+    }
+
     function showNextPhoto() {
       if (photoUrls.length === 0) return;
       photoIndex = (photoIndex + 1) % photoUrls.length;
+      // Reshuffle when we loop back to start
+      if (photoIndex === 0) photoUrls = shuffleArray(photoUrls);
 
       var imgA = document.getElementById('photoA');
       var imgB = document.getElementById('photoB');
@@ -1601,6 +1674,7 @@
 
       next.src = photoUrls[photoIndex];
       next.onload = function() {
+        applyKenBurns(next);
         next.classList.add('active');
         prev.classList.remove('active');
         updatePhotoCounter();
@@ -1624,6 +1698,7 @@
 
       next.src = photoUrls[photoIndex];
       next.onload = function() {
+        applyKenBurns(next);
         next.classList.add('active');
         prev.classList.remove('active');
         updatePhotoCounter();
@@ -1643,17 +1718,27 @@
       if (el) el.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
     }
 
+    function showSwipeHints() {
+      var hints = document.getElementById('swipeHints');
+      if (!hints) return;
+      hints.classList.add('visible');
+      setTimeout(function() { hints.classList.remove('visible'); }, 2500);
+    }
+
     function startPhotoMode() {
       var frame = document.getElementById('photoFrame');
       frame.classList.remove('hidden');
-      // Show first photo immediately
+      // Show first photo with Ken Burns
       if (photoUrls.length > 0) {
         var imgA = document.getElementById('photoA');
         imgA.src = photoUrls[photoIndex];
         imgA.classList.add('active');
+        applyKenBurns(imgA);
         updatePhotoCounter();
         preloadPhoto(photoIndex + 1);
       }
+      // Show swipe hints briefly
+      showSwipeHints();
       // Rotate every 15 seconds
       if (photoInterval) clearInterval(photoInterval);
       photoInterval = setInterval(showNextPhoto, 15000);
