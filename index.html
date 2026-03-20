@@ -704,6 +704,76 @@
     }
     .face-indicator.visible { opacity: 0.7; }
 
+    /* Face selector menu */
+    .face-selector {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(0,0,0,0.92);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2vh;
+    }
+    .face-selector.visible { display: flex; }
+    .face-selector-title {
+      font-size: 2vw;
+      color: var(--text-mid);
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-weight: 600;
+      margin-bottom: 1vh;
+    }
+    .face-selector-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 2vw;
+      padding: 0 5vw;
+    }
+    .face-option {
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 2vh 1.5vw;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.3s ease, transform 0.2s ease;
+      background: var(--bg-widget);
+    }
+    .face-option:hover,
+    .face-option:active { border-color: var(--cyan); transform: scale(1.05); }
+    .face-option.active { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,229,255,0.2); }
+    .face-option-icon { font-size: 5vw; margin-bottom: 1vh; }
+    .face-option-name {
+      font-size: 1.4vw;
+      color: var(--text-light);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .face-option-desc {
+      font-size: 1vw;
+      color: var(--text-dim);
+      margin-top: 0.5vh;
+    }
+    .face-selector-hint {
+      font-size: 1vw;
+      color: var(--text-dim);
+      margin-top: 1vh;
+    }
+    .face-auto-toggle {
+      font-size: 1.2vw;
+      color: var(--text-mid);
+      margin-top: 1vh;
+      cursor: pointer;
+      padding: 0.5vh 1.5vw;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      transition: border-color 0.3s ease;
+    }
+    .face-auto-toggle:active { border-color: var(--cyan); }
+    .face-auto-toggle.active { border-color: var(--green); color: var(--green); }
+
     /* ===== FACE: MINIMAL ===== */
     .minimal-overlay {
       display: none;
@@ -1146,6 +1216,14 @@
         <div class="family-details" id="familyDetails"></div>
       </div>
     </div>
+  </div>
+
+  <!-- Face selector menu -->
+  <div class="face-selector" id="faceSelector">
+    <div class="face-selector-title">Elegir cara</div>
+    <div class="face-selector-grid" id="faceSelectorGrid"></div>
+    <div class="face-auto-toggle" id="faceAutoToggle">Auto por hora: OFF</div>
+    <div class="face-selector-hint">Toca para elegir &middot; Long press para abrir este menu</div>
   </div>
 
   <!-- Face indicator -->
@@ -2196,7 +2274,7 @@
       longPressTriggered = false;
       longPressTimer = setTimeout(function() {
         longPressTriggered = true;
-        nextFace();
+        openFaceSelector();
       }, LONG_PRESS_TIME);
     }, { passive: true });
 
@@ -2288,17 +2366,107 @@
       setFace((currentFaceIndex + 1) % FACES.length);
     }
 
-    function handleTripleTap() {
-      tripleTapCount++;
-      if (tripleTapTimer) clearTimeout(tripleTapTimer);
-      if (tripleTapCount >= 3) {
-        tripleTapCount = 0;
-        showTapFeedback('\uD83C\uDFA8');
-        nextFace();
-        return;
-      }
-      tripleTapTimer = setTimeout(function() { tripleTapCount = 0; }, 500);
+    // ===== FACE SELECTOR MENU =====
+    var FACE_META = [
+      { name: 'dashboard', icon: '\uD83D\uDCCA', label: 'Dashboard', desc: 'Todos los datos' },
+      { name: 'minimal', icon: '\uD83D\uDD70\uFE0F', label: 'Minimal', desc: 'Reloj + temp' },
+      { name: 'satellite', icon: '\uD83C\uDF0D', label: 'Satelite', desc: 'GOES-19 fullscreen' },
+      { name: 'retro', icon: '\uD83D\uDDA5\uFE0F', label: 'Retro', desc: 'Terminal verde' },
+      { name: 'family', icon: '\uD83D\uDDBC\uFE0F', label: 'Family', desc: 'Foto + clima' }
+    ];
+    var faceSelectorOpen = false;
+
+    function buildFaceSelector() {
+      var grid = document.getElementById('faceSelectorGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      FACE_META.forEach(function(face, i) {
+        var div = document.createElement('div');
+        div.className = 'face-option' + (i === currentFaceIndex ? ' active' : '');
+        div.innerHTML = '<div class="face-option-icon">' + face.icon + '</div>' +
+          '<div class="face-option-name">' + face.label + '</div>' +
+          '<div class="face-option-desc">' + face.desc + '</div>';
+        div.addEventListener('click', function(e) {
+          e.stopPropagation();
+          setFace(i);
+          closeFaceSelector();
+        });
+        grid.appendChild(div);
+      });
     }
+
+    function openFaceSelector() {
+      faceSelectorOpen = true;
+      buildFaceSelector();
+      var sel = document.getElementById('faceSelector');
+      if (sel) sel.classList.add('visible');
+      // Update auto toggle state
+      var toggle = document.getElementById('faceAutoToggle');
+      if (toggle) {
+        toggle.textContent = 'Auto por hora: ' + (autoFaceEnabled ? 'ON' : 'OFF');
+        toggle.className = 'face-auto-toggle' + (autoFaceEnabled ? ' active' : '');
+      }
+    }
+
+    function closeFaceSelector() {
+      faceSelectorOpen = false;
+      var sel = document.getElementById('faceSelector');
+      if (sel) sel.classList.remove('visible');
+    }
+
+    // Close selector on tap outside
+    document.addEventListener('click', function(e) {
+      if (faceSelectorOpen && !e.target.closest('.face-option') && !e.target.closest('.face-auto-toggle')) {
+        closeFaceSelector();
+      }
+    });
+
+    // ===== AUTO-FACE BY TIME =====
+    var autoFaceEnabled = false;
+    var AUTO_FACE_SCHEDULE = [
+      // { hour: start, face: index }
+      { hour: 7, face: 0 },   // 07:00 → Dashboard
+      { hour: 12, face: 2 },  // 12:00 → Satellite
+      { hour: 18, face: 4 },  // 18:00 → Family
+      { hour: 22, face: 1 },  // 22:00 → Minimal
+      { hour: 0, face: 3 }    // 00:00 → Retro
+    ];
+
+    function getAutoFace() {
+      var hour = new Date().getHours();
+      var result = AUTO_FACE_SCHEDULE[0].face;
+      // Find the latest schedule entry that's <= current hour
+      for (var i = AUTO_FACE_SCHEDULE.length - 1; i >= 0; i--) {
+        if (hour >= AUTO_FACE_SCHEDULE[i].hour) {
+          result = AUTO_FACE_SCHEDULE[i].face;
+          break;
+        }
+      }
+      return result;
+    }
+
+    function checkAutoFace() {
+      if (!autoFaceEnabled) return;
+      var target = getAutoFace();
+      if (target !== currentFaceIndex) {
+        setFace(target);
+      }
+    }
+
+    function toggleAutoFace() {
+      autoFaceEnabled = !autoFaceEnabled;
+      var toggle = document.getElementById('faceAutoToggle');
+      if (toggle) {
+        toggle.textContent = 'Auto por hora: ' + (autoFaceEnabled ? 'ON' : 'OFF');
+        toggle.className = 'face-auto-toggle' + (autoFaceEnabled ? ' active' : '');
+      }
+      if (autoFaceEnabled) checkAutoFace();
+      // Save preference
+      try { localStorage.setItem('autoFace', autoFaceEnabled ? '1' : '0'); } catch(e) {}
+    }
+
+    // Check auto-face every minute
+    setInterval(checkAutoFace, 60 * 1000);
 
     function updateFaceData() {
       var data = state.weatherData;
@@ -2411,11 +2579,23 @@
       await loadPhotoList();
       startModeCycle();
 
-      // Load face from URL param
+      // Load face from URL param or localStorage
       var urlFace = new URLSearchParams(window.location.search).get('face');
       if (urlFace && FACES.indexOf(urlFace) !== -1) {
         setFace(FACES.indexOf(urlFace));
       }
+
+      // Load auto-face preference
+      try {
+        if (localStorage.getItem('autoFace') === '1') {
+          autoFaceEnabled = true;
+          checkAutoFace();
+        }
+      } catch(e) {}
+
+      // Wire up auto toggle button
+      var autoBtn = document.getElementById('faceAutoToggle');
+      if (autoBtn) autoBtn.addEventListener('click', function(e) { e.stopPropagation(); toggleAutoFace(); });
 
       // Character mascots during weather mode
       setInterval(showMascot, 5 * 60 * 1000);
