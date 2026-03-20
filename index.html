@@ -451,6 +451,45 @@
       filter: brightness(2); /* compensate so prompt is still readable */
     }
 
+    /* ===== PHOTO FRAME (portarretratos) ===== */
+    .photo-frame {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: #000;
+      transition: opacity 1s ease;
+    }
+
+    .photo-frame.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .photo-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      opacity: 0;
+      transition: opacity 1.5s ease;
+    }
+
+    .photo-img.active {
+      opacity: 1;
+    }
+
+    .photo-clock {
+      position: absolute;
+      bottom: 1.5vh;
+      right: 2vw;
+      font-size: 3vw;
+      color: rgba(255, 255, 255, 0.4);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+      z-index: 2;
+    }
+
     /* ===== CHARACTER MASCOTS ===== */
     .mascot-overlay {
       position: fixed;
@@ -707,6 +746,13 @@
     <!-- === FILA INFERIOR: PRONOSTICO HORARIO === -->
     <div class="row-bottom" id="forecastRow"></div>
 
+  </div>
+
+  <!-- PHOTO FRAME (primary mode) -->
+  <div class="photo-frame" id="photoFrame">
+    <img id="photoA" class="photo-img active" alt="">
+    <img id="photoB" class="photo-img" alt="">
+    <div class="photo-clock mono" id="photoClock">--:--</div>
   </div>
 
   <!-- Weather mascot -->
@@ -1478,9 +1524,110 @@
       if (fn) fn.call(el);
     }
 
+    // ===== PHOTO FRAME (portarretratos) =====
+    var photoUrls = [];
+    var photoIndex = 0;
+    var photoSlotA = true; // toggle between A and B for crossfade
+    var photoInterval = null;
+
+    async function loadPhotoList() {
+      try {
+        var res = await fetch('photos.json?t=' + Date.now());
+        if (!res.ok) return;
+        var data = await res.json();
+        // Filter out placeholder URLs
+        photoUrls = data.filter(function(u) { return u && u.indexOf('REEMPLAZA') === -1; });
+      } catch (e) {
+        console.warn('No photos.json found or invalid:', e);
+      }
+    }
+
+    function showNextPhoto() {
+      if (photoUrls.length === 0) return;
+      photoIndex = (photoIndex + 1) % photoUrls.length;
+
+      var imgA = document.getElementById('photoA');
+      var imgB = document.getElementById('photoB');
+      var next = photoSlotA ? imgA : imgB;
+      var prev = photoSlotA ? imgB : imgA;
+
+      next.src = photoUrls[photoIndex];
+      next.onload = function() {
+        next.classList.add('active');
+        prev.classList.remove('active');
+      };
+      next.onerror = function() {
+        // Skip broken image, try next
+        showNextPhoto();
+      };
+
+      photoSlotA = !photoSlotA;
+    }
+
+    function updatePhotoClock() {
+      var now = new Date();
+      var pad = function(n) { return String(n).padStart(2, '0'); };
+      var el = document.getElementById('photoClock');
+      if (el) el.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    }
+
+    function startPhotoMode() {
+      var frame = document.getElementById('photoFrame');
+      frame.classList.remove('hidden');
+      // Show first photo immediately
+      if (photoUrls.length > 0) {
+        var imgA = document.getElementById('photoA');
+        imgA.src = photoUrls[photoIndex];
+        imgA.classList.add('active');
+      }
+      // Rotate every 15 seconds
+      if (photoInterval) clearInterval(photoInterval);
+      photoInterval = setInterval(showNextPhoto, 15000);
+    }
+
+    function stopPhotoMode() {
+      var frame = document.getElementById('photoFrame');
+      frame.classList.add('hidden');
+      if (photoInterval) {
+        clearInterval(photoInterval);
+        photoInterval = null;
+      }
+    }
+
+    // Mode cycling: photos (270s) -> weather (30s) -> photos ...
+    var MODE_PHOTO_DURATION = 270 * 1000;  // 4.5 minutes of photos
+    var MODE_WEATHER_DURATION = 30 * 1000; // 30 seconds of weather
+
+    function startModeCycle() {
+      // Start in photo mode
+      if (photoUrls.length > 0) {
+        startPhotoMode();
+      }
+
+      function cycle() {
+        if (photoUrls.length === 0) return; // no photos, stay on weather
+
+        // Switch to weather dashboard
+        stopPhotoMode();
+
+        // After 30s, switch back to photos
+        setTimeout(function() {
+          startPhotoMode();
+
+          // After 4.5 min of photos, switch to weather again
+          setTimeout(cycle, MODE_PHOTO_DURATION);
+        }, MODE_WEATHER_DURATION);
+      }
+
+      // First switch to weather after 4.5 min
+      if (photoUrls.length > 0) {
+        setTimeout(cycle, MODE_PHOTO_DURATION);
+      }
+    }
+
     // ===== INIT =====
     async function init() {
-      const prompt = document.getElementById('fullscreenPrompt');
+      var prompt = document.getElementById('fullscreenPrompt');
       prompt.addEventListener('click', async function() {
         prompt.classList.add('hidden');
         requestFullscreen();
@@ -1488,9 +1635,10 @@
       });
 
       updateClock();
+      updatePhotoClock();
       updateNightMode();
       setInterval(updateClock, 1000);
-      // Check night mode every minute
+      setInterval(updatePhotoClock, 30000);
       setInterval(updateNightMode, 60 * 1000);
 
       await fetchWeather();
@@ -1501,14 +1649,17 @@
       setInterval(fetchAirQuality, CONFIG.refreshClimateMs);
       setInterval(loadImage, CONFIG.refreshImageMs);
 
-      // Cycle forecast mode every 20 seconds (hourly <-> 7-day)
+      // Forecast cycling
       setInterval(cycleForecastMode, 20 * 1000);
 
-      // Snoopy: show after 5s, then every 5 min
-      setTimeout(showMascot, 5000);
+      // Load photos and start mode cycling
+      await loadPhotoList();
+      startModeCycle();
+
+      // Character mascots during weather mode
       setInterval(showMascot, 5 * 60 * 1000);
 
-      // Preventive reload every 6 hours to avoid Chrome memory leaks
+      // Preventive reload every 6 hours
       setTimeout(function() { location.reload(); }, 6 * 3600 * 1000);
     }
 
