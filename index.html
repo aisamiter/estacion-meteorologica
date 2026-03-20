@@ -1033,10 +1033,32 @@
     body.face-fede #widgetPressure { grid-row: 3; grid-column: 2; display: flex; }
     body.face-fede #widgetAstro { display: none; }
     body.face-fede #widgetAir { display: none; }
+    body.face-fede #widgetTemp .temp-value { font-size: 7vw; }
+    body.face-fede #widgetTemp .temp-minmax { font-size: 1vw; }
+    body.face-fede #widgetHumid .humid-value { font-size: 7vw; }
     body.face-fede #forecastRow {
       grid-row: 4; grid-column: 1 / -1;
       grid-template-columns: repeat(12, 1fr);
     }
+
+    /* ===== BATTERY IN ALL FACES ===== */
+    .face-battery {
+      position: fixed;
+      bottom: 6px;
+      right: 8px;
+      z-index: 100;
+      font-size: 0.5rem;
+      color: var(--text-dim);
+      font-family: 'Share Tech Mono', monospace;
+      display: none;
+    }
+    body.face-minimal .face-battery,
+    body.face-satellite .face-battery,
+    body.face-retro .face-battery,
+    body.face-family .face-battery { display: block; }
+
+    /* Retro face battery override */
+    body.face-retro .face-battery { color: #1a8a1a; }
 
     /* ===== BATTERY INDICATOR ===== */
     .battery-icon {
@@ -1289,6 +1311,9 @@
     <div class="face-auto-toggle" id="faceAutoToggle">Auto por hora: OFF</div>
     <div class="face-selector-hint">Toca para elegir &middot; Long press para abrir este menu</div>
   </div>
+
+  <!-- Battery for overlay faces -->
+  <div class="face-battery" id="faceBattery"></div>
 
   <!-- Face indicator -->
   <div class="face-indicator" id="faceIndicator"></div>
@@ -2616,15 +2641,37 @@
 
     // ===== BATTERY =====
     function updateBatteryUI(battery) {
-      var el = document.getElementById('batteryIndicator');
-      if (!el) return;
       var pct = Math.round(battery.level * 100);
       var charging = battery.charging;
       var colorClass = pct <= 20 ? 'low' : pct <= 50 ? 'mid' : '';
-      el.innerHTML = '<span class="battery-icon">' +
+      var html = '<span class="battery-icon">' +
         '<span class="bar"><span class="fill ' + colorClass + '" style="width:' + pct + '%"></span></span> ' +
         pct + '%' + (charging ? ' \u26A1' : '') +
         '</span>';
+      // Update source indicator battery
+      var el = document.getElementById('batteryIndicator');
+      if (el) el.innerHTML = html;
+      // Update overlay faces battery
+      var fb = document.getElementById('faceBattery');
+      if (fb) fb.innerHTML = html;
+      // Low battery alert
+      if (pct <= 15 && !charging) {
+        checkBatteryAlert(pct);
+      }
+    }
+
+    var lastBatteryAlert = 0;
+    function checkBatteryAlert(pct) {
+      var now = Date.now();
+      // Only alert once every 10 minutes
+      if (now - lastBatteryAlert < 10 * 60 * 1000) return;
+      lastBatteryAlert = now;
+      var banner = document.getElementById('alertBanner');
+      if (banner) {
+        banner.textContent = '\u26A0\uFE0F BATERIA BAJA: ' + pct + '% — Conectar cargador';
+        banner.className = 'alert-banner visible danger';
+        setTimeout(function() { banner.classList.remove('visible'); }, 15000);
+      }
     }
 
     async function initBattery() {
