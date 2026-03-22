@@ -2522,6 +2522,46 @@
       try { localStorage.setItem('lowPerf', enabled ? '1' : '0'); } catch(e) {}
     }
 
+    // ===== FPS AUTO-DETECT =====
+    var fpsLowCount = 0;
+    var fpsLastTime = 0;
+    var fpsFrames = 0;
+    var fpsCheckId = null;
+
+    function startFpsMonitor() {
+      if (lowPerfEnabled) return; // already in low-perf, no need to monitor
+      fpsLastTime = performance.now();
+      fpsFrames = 0;
+      fpsLowCount = 0;
+
+      function fpsLoop(now) {
+        fpsFrames++;
+        var elapsed = now - fpsLastTime;
+        if (elapsed >= 2000) { // check every 2 seconds
+          var fps = (fpsFrames * 1000) / elapsed;
+          fpsFrames = 0;
+          fpsLastTime = now;
+          if (fps < 25) {
+            fpsLowCount++;
+            if (fpsLowCount >= 2) { // 2 consecutive low readings (~4s)
+              setLowPerf(true);
+              return; // stop monitoring
+            }
+          } else {
+            fpsLowCount = 0;
+          }
+        }
+        if (!lowPerfEnabled) {
+          fpsCheckId = requestAnimationFrame(fpsLoop);
+        }
+      }
+      fpsCheckId = requestAnimationFrame(fpsLoop);
+      // Stop monitoring after 30 seconds regardless (save CPU)
+      setTimeout(function() {
+        if (fpsCheckId) cancelAnimationFrame(fpsCheckId);
+      }, 30000);
+    }
+
     // ===== HELP OVERLAY =====
     var helpOpen = false;
 
@@ -2953,6 +2993,11 @@
         try {
           if (localStorage.getItem('lowPerf') === '1') setLowPerf(true);
         } catch(e) {}
+      }
+
+      // Auto-detect slow hardware (monitors FPS for 30s, activates low-perf if < 25fps)
+      if (!lowPerfEnabled) {
+        startFpsMonitor();
       }
 
       // Preventive reload every 6 hours
