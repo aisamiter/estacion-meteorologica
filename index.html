@@ -690,6 +690,68 @@
 
     .fullscreen-prompt.hidden { display: none; }
 
+    /* ===== LOW-PERF MODE ===== */
+    body.low-perf .photo-img { transition: opacity 0.3s ease !important; will-change: auto !important; }
+    body.low-perf .photo-img.kb-1,
+    body.low-perf .photo-img.kb-2,
+    body.low-perf .photo-img.kb-3,
+    body.low-perf .photo-img.kb-4 { animation: none !important; }
+    body.low-perf .clock-seconds { animation: none !important; opacity: 0.6; }
+    body.low-perf .mascot-overlay { display: none !important; }
+    body.low-perf .widget { box-shadow: none; }
+    body.low-perf .marker { animation: none !important; }
+    body.low-perf .fullscreen-prompt p { animation: none !important; }
+
+    /* ===== KEYBOARD HELP OVERLAY ===== */
+    .help-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0, 0, 0, 0.92);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .help-overlay.visible { display: flex; }
+    .help-content {
+      max-width: 500px;
+      width: 90%;
+    }
+    .help-title {
+      color: var(--cyan);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      text-align: center;
+      text-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+    }
+    .help-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.3rem 0;
+      border-bottom: 1px solid #1a2530;
+      font-size: 0.75rem;
+    }
+    .help-key {
+      color: var(--cyan);
+      min-width: 80px;
+    }
+    .help-desc { color: var(--text-mid); }
+    .help-section {
+      color: var(--green);
+      font-size: 0.65rem;
+      margin-top: 0.6rem;
+      margin-bottom: 0.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .help-close {
+      color: var(--text-dim);
+      font-size: 0.6rem;
+      text-align: center;
+      margin-top: 1rem;
+    }
+
     /* ===== FACE SYSTEM ===== */
     .face-indicator {
       position: fixed;
@@ -1306,12 +1368,33 @@
     </div>
   </div>
 
+  <!-- Keyboard help overlay -->
+  <div class="help-overlay" id="helpOverlay">
+    <div class="help-content">
+      <div class="help-title">Atajos de Teclado</div>
+      <div class="help-section">Navegacion</div>
+      <div class="help-row"><span class="help-key">&larr; &rarr;</span><span class="help-desc">Cambiar cara / navegar fotos</span></div>
+      <div class="help-row"><span class="help-key">&uarr;</span><span class="help-desc">Volver al clima desde fotos</span></div>
+      <div class="help-row"><span class="help-key">&darr;</span><span class="help-desc">Ir a fotos desde clima</span></div>
+      <div class="help-row"><span class="help-key">1 - 6</span><span class="help-desc">Ir directo a una cara</span></div>
+      <div class="help-section">Modos</div>
+      <div class="help-row"><span class="help-key">F</span><span class="help-desc">Toggle focus mode (sin fotos)</span></div>
+      <div class="help-row"><span class="help-key">M / Space</span><span class="help-desc">Abrir selector de caras</span></div>
+      <div class="help-row"><span class="help-key">A</span><span class="help-desc">Toggle auto-face por hora</span></div>
+      <div class="help-row"><span class="help-key">Escape</span><span class="help-desc">Cerrar selector / salir de focus</span></div>
+      <div class="help-section">Info</div>
+      <div class="help-row"><span class="help-key">?</span><span class="help-desc">Mostrar/ocultar esta ayuda</span></div>
+      <div class="help-row"><span class="help-key">P</span><span class="help-desc">Toggle modo low-perf</span></div>
+      <div class="help-close">Presiona cualquier tecla para cerrar</div>
+    </div>
+  </div>
+
   <!-- Face selector menu -->
   <div class="face-selector" id="faceSelector">
     <div class="face-selector-title">Elegir cara</div>
     <div class="face-selector-grid" id="faceSelectorGrid"></div>
     <div class="face-auto-toggle" id="faceAutoToggle">Auto por hora: OFF</div>
-    <div class="face-selector-hint">Toca para elegir &middot; Long press para abrir este menu</div>
+    <div class="face-selector-hint">Click o 1-6 para elegir &middot; M/Space para abrir &middot; F = focus &middot; A = auto</div>
   </div>
 
   <!-- Battery for overlay faces -->
@@ -2424,6 +2507,116 @@
       handleTap();
     });
 
+    // ===== LOW-PERF MODE =====
+    var lowPerfEnabled = false;
+
+    function setLowPerf(enabled) {
+      lowPerfEnabled = enabled;
+      if (enabled) {
+        document.body.classList.add('low-perf');
+        showTapFeedback('\u26A1');
+      } else {
+        document.body.classList.remove('low-perf');
+        showTapFeedback('\u2728');
+      }
+      try { localStorage.setItem('lowPerf', enabled ? '1' : '0'); } catch(e) {}
+    }
+
+    // ===== HELP OVERLAY =====
+    var helpOpen = false;
+
+    function toggleHelp() {
+      helpOpen = !helpOpen;
+      var overlay = document.getElementById('helpOverlay');
+      if (overlay) overlay.classList.toggle('visible', helpOpen);
+    }
+
+    function closeHelp() {
+      if (!helpOpen) return;
+      helpOpen = false;
+      var overlay = document.getElementById('helpOverlay');
+      if (overlay) overlay.classList.remove('visible');
+    }
+
+    // ===== KEYBOARD CONTROLS (for non-touch devices) =====
+    document.addEventListener('keydown', function(e) {
+      // Help overlay: any key closes it (except ? which toggles)
+      if (helpOpen && e.key !== '?') { closeHelp(); return; }
+
+      // Don't intercept if face selector is open (except Escape and number keys)
+      if (faceSelectorOpen) {
+        if (e.key === 'Escape') { closeFaceSelector(); return; }
+        var num = parseInt(e.key);
+        if (num >= 1 && num <= FACES.length) {
+          setFace(num - 1);
+          closeFaceSelector();
+          return;
+        }
+        return;
+      }
+
+      switch (e.key) {
+        case '?':
+          toggleHelp();
+          break;
+        case 'ArrowLeft':
+          if (currentMode === 'photo') {
+            showTapFeedback('\u25C0');
+            showPrevPhoto();
+          } else {
+            setFace((currentFaceIndex - 1 + FACES.length) % FACES.length);
+          }
+          break;
+        case 'ArrowRight':
+          if (currentMode === 'photo') {
+            showTapFeedback('\u25B6');
+            showNextPhoto();
+          } else {
+            setFace((currentFaceIndex + 1) % FACES.length);
+          }
+          break;
+        case 'ArrowUp':
+          if (currentMode === 'photo') {
+            showTapFeedback('\u2600\uFE0F');
+            switchToWeather();
+          }
+          break;
+        case 'ArrowDown':
+          if (currentMode === 'weather' && !focusMode && photoUrls.length > 0) {
+            showTapFeedback('\uD83D\uDDBC\uFE0F');
+            switchToPhotos();
+          }
+          break;
+        case 'f':
+        case 'F':
+          if (focusMode) { exitFocusMode(); } else { enterFocusMode(); }
+          break;
+        case 'm':
+        case 'M':
+        case ' ':
+          e.preventDefault();
+          if (faceSelectorOpen) { closeFaceSelector(); } else { openFaceSelector(); }
+          break;
+        case 'Escape':
+          if (focusMode) { exitFocusMode(); }
+          break;
+        case 'a':
+        case 'A':
+          toggleAutoFace();
+          break;
+        case 'p':
+        case 'P':
+          setLowPerf(!lowPerfEnabled);
+          break;
+        default:
+          var faceNum = parseInt(e.key);
+          if (faceNum >= 1 && faceNum <= FACES.length) {
+            setFace(faceNum - 1);
+          }
+          break;
+      }
+    });
+
     // ===== FACE SYSTEM =====
     var FACES = ['dashboard', 'fede', 'minimal', 'satellite', 'retro', 'family'];
     var currentFaceIndex = 0;
@@ -2735,11 +2928,32 @@
       var autoBtn = document.getElementById('faceAutoToggle');
       if (autoBtn) autoBtn.addEventListener('click', function(e) { e.stopPropagation(); toggleAutoFace(); });
 
-      // Character mascots during weather mode
-      setInterval(showMascot, 5 * 60 * 1000);
+      // Character mascots during weather mode (skip if low-perf)
+      if (!lowPerfEnabled) {
+        setInterval(showMascot, 5 * 60 * 1000);
+      }
 
-      // Battery indicator
-      initBattery();
+      // Battery indicator — only on devices that support it
+      var isDesktop = !('ontouchstart' in window) && !navigator.maxTouchPoints;
+      if (!isDesktop) {
+        initBattery();
+      } else {
+        // Hide battery elements on desktop
+        var faceBatt = document.getElementById('faceBattery');
+        if (faceBatt) faceBatt.style.display = 'none';
+        var battInd = document.getElementById('batteryIndicator');
+        if (battInd) battInd.style.display = 'none';
+      }
+
+      // Low-perf mode: from URL param or localStorage
+      var urlPerf = new URLSearchParams(window.location.search).get('perf');
+      if (urlPerf === 'low') {
+        setLowPerf(true);
+      } else {
+        try {
+          if (localStorage.getItem('lowPerf') === '1') setLowPerf(true);
+        } catch(e) {}
+      }
 
       // Preventive reload every 6 hours
       setTimeout(function() { location.reload(); }, 6 * 3600 * 1000);
