@@ -805,8 +805,10 @@
       background: var(--bg-widget);
     }
     .face-option:hover,
-    .face-option:active { border-color: var(--cyan); transform: scale(1.05); }
+    .face-option:active,
+    .face-option.focused { border-color: var(--cyan); transform: scale(1.05); }
     .face-option.active { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0,229,255,0.2); }
+    .face-option.focused { box-shadow: 0 0 16px rgba(0,229,255,0.35); }
     .face-option-icon { font-size: 5vw; margin-bottom: 1vh; }
     .face-option-name {
       font-size: 1.4vw;
@@ -1105,6 +1107,27 @@
       grid-template-columns: repeat(12, 1fr);
     }
 
+    /* ===== FACE: HP (optimized for 1366x768, no-touch desktop) ===== */
+    body.face-hp .dashboard {
+      grid-template-columns: 1.6fr 1fr 1fr 1.8fr;
+      grid-template-rows: 1.2fr 0.8fr auto;
+      gap: 3px;
+      padding: 3px;
+    }
+    body.face-hp .widget {
+      border-radius: 4px;
+      padding: 0.4rem 0.5rem;
+    }
+    body.face-hp .clock-time { font-size: 7vw; }
+    body.face-hp .clock-seconds { font-size: 2.5vw; }
+    body.face-hp .clock-date { font-size: 1.3vw; }
+    body.face-hp .temp-value { font-size: 8vw; }
+    body.face-hp .humid-value { font-size: 5.5vw; }
+    body.face-hp .label { font-size: 1vw; }
+    body.face-hp .sub-info { font-size: 1.1vw; }
+    body.face-hp #forecastRow { grid-template-columns: repeat(8, 1fr); }
+    body.face-hp .source-indicator { font-size: 0.55rem; }
+
     /* ===== BATTERY IN ALL FACES ===== */
     .face-battery {
       position: fixed;
@@ -1376,10 +1399,11 @@
       <div class="help-row"><span class="help-key">&larr; &rarr;</span><span class="help-desc">Cambiar cara / navegar fotos</span></div>
       <div class="help-row"><span class="help-key">&uarr;</span><span class="help-desc">Volver al clima desde fotos</span></div>
       <div class="help-row"><span class="help-key">&darr;</span><span class="help-desc">Ir a fotos desde clima</span></div>
-      <div class="help-row"><span class="help-key">1 - 6</span><span class="help-desc">Ir directo a una cara</span></div>
+      <div class="help-row"><span class="help-key">1 - 7</span><span class="help-desc">Ir directo a una cara</span></div>
       <div class="help-section">Modos</div>
       <div class="help-row"><span class="help-key">F</span><span class="help-desc">Toggle focus mode (sin fotos)</span></div>
-      <div class="help-row"><span class="help-key">M / Space</span><span class="help-desc">Abrir selector de caras</span></div>
+      <div class="help-row"><span class="help-key">M / Space / Click der.</span><span class="help-desc">Abrir selector de caras</span></div>
+      <div class="help-row"><span class="help-key">Flechas + Enter</span><span class="help-desc">Navegar y elegir en el selector</span></div>
       <div class="help-row"><span class="help-key">A</span><span class="help-desc">Toggle auto-face por hora</span></div>
       <div class="help-row"><span class="help-key">Escape</span><span class="help-desc">Cerrar selector / salir de focus</span></div>
       <div class="help-section">Info</div>
@@ -2583,9 +2607,26 @@
       // Help overlay: any key closes it (except ? which toggles)
       if (helpOpen && e.key !== '?') { closeHelp(); return; }
 
-      // Don't intercept if face selector is open (except Escape and number keys)
+      // Face selector open: arrow navigation + Enter to select
       if (faceSelectorOpen) {
         if (e.key === 'Escape') { closeFaceSelector(); return; }
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          var next = (selectorFocusIndex + 1) % FACES.length;
+          highlightSelectorOption(next);
+          return;
+        }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          var prev = (selectorFocusIndex - 1 + FACES.length) % FACES.length;
+          highlightSelectorOption(prev);
+          return;
+        }
+        if (e.key === 'Enter' && selectorFocusIndex >= 0) {
+          setFace(selectorFocusIndex);
+          closeFaceSelector();
+          return;
+        }
         var num = parseInt(e.key);
         if (num >= 1 && num <= FACES.length) {
           setFace(num - 1);
@@ -2658,7 +2699,7 @@
     });
 
     // ===== FACE SYSTEM =====
-    var FACES = ['dashboard', 'fede', 'minimal', 'satellite', 'retro', 'family'];
+    var FACES = ['dashboard', 'fede', 'minimal', 'satellite', 'retro', 'family', 'hp'];
     var currentFaceIndex = 0;
     var tripleTapCount = 0;
     var tripleTapTimer = null;
@@ -2698,9 +2739,21 @@
       { name: 'minimal', icon: '\uD83D\uDD70\uFE0F', label: 'Minimal', desc: 'Reloj + temp' },
       { name: 'satellite', icon: '\uD83C\uDF0D', label: 'Satelite', desc: 'GOES-19 fullscreen' },
       { name: 'retro', icon: '\uD83D\uDDA5\uFE0F', label: 'Retro', desc: 'Terminal verde' },
-      { name: 'family', icon: '\uD83D\uDDBC\uFE0F', label: 'Family', desc: 'Foto + clima' }
+      { name: 'family', icon: '\uD83D\uDDBC\uFE0F', label: 'Family', desc: 'Foto + clima' },
+      { name: 'hp', icon: '\uD83D\uDCBB', label: 'HP', desc: '1366x768 desktop' }
     ];
     var faceSelectorOpen = false;
+    var selectorFocusIndex = -1;
+
+    function highlightSelectorOption(index) {
+      var grid = document.getElementById('faceSelectorGrid');
+      if (!grid) return;
+      var options = grid.querySelectorAll('.face-option');
+      options.forEach(function(opt, i) {
+        opt.classList.toggle('focused', i === index);
+      });
+      selectorFocusIndex = index;
+    }
 
     function buildFaceSelector() {
       var grid = document.getElementById('faceSelectorGrid');
@@ -2723,7 +2776,9 @@
 
     function openFaceSelector() {
       faceSelectorOpen = true;
+      selectorFocusIndex = currentFaceIndex;
       buildFaceSelector();
+      highlightSelectorOption(currentFaceIndex);
       var sel = document.getElementById('faceSelector');
       if (sel) sel.classList.add('visible');
       // Update auto toggle state
@@ -2745,6 +2800,13 @@
       if (faceSelectorOpen && !e.target.closest('.face-option') && !e.target.closest('.face-auto-toggle')) {
         closeFaceSelector();
       }
+    });
+
+    // Right-click opens face selector (desktop-friendly)
+    document.addEventListener('contextmenu', function(e) {
+      if (e.target.closest('#fullscreenPrompt') || e.target.closest('#helpOverlay')) return;
+      e.preventDefault();
+      if (faceSelectorOpen) { closeFaceSelector(); } else { openFaceSelector(); }
     });
 
     // ===== AUTO-FACE BY TIME =====
