@@ -702,6 +702,108 @@
     body.low-perf .marker { animation: none !important; }
     body.low-perf .fullscreen-prompt p { animation: none !important; }
 
+    /* ===== GOOGLE PHOTOS SETUP MODAL ===== */
+    .gp-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 210;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .gp-modal.visible { display: flex; }
+    .gp-content {
+      max-width: 520px;
+      width: 90%;
+      background: var(--bg-widget);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+    .gp-title {
+      color: var(--cyan);
+      font-size: 1rem;
+      margin-bottom: 0.8rem;
+      text-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+    }
+    .gp-label {
+      color: var(--text-mid);
+      font-size: 0.65rem;
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+    .gp-input {
+      width: 100%;
+      background: #000;
+      border: 1px solid var(--border);
+      color: var(--cyan);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.5rem;
+      border-radius: 4px;
+      margin-bottom: 0.8rem;
+    }
+    .gp-input:focus { outline: none; border-color: var(--cyan); }
+    .gp-btn {
+      background: transparent;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-right: 0.5rem;
+    }
+    .gp-btn:hover { background: rgba(0, 229, 255, 0.1); }
+    .gp-btn.danger { border-color: var(--red); color: var(--red); }
+    .gp-btn.danger:hover { background: rgba(255, 34, 68, 0.1); }
+    .gp-status {
+      color: var(--green);
+      font-size: 0.6rem;
+      margin-top: 0.5rem;
+    }
+    .gp-status.error { color: var(--red); }
+    .gp-albums {
+      max-height: 30vh;
+      overflow-y: auto;
+      margin: 0.5rem 0;
+    }
+    .gp-album {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem;
+      border-bottom: 1px solid #1a2530;
+      cursor: pointer;
+      font-size: 0.65rem;
+      color: var(--text-mid);
+    }
+    .gp-album:hover { background: rgba(0, 229, 255, 0.05); }
+    .gp-album input { accent-color: var(--cyan); }
+    .gp-album-name { color: var(--text-light); }
+    .gp-album-count { color: var(--text-dim); font-size: 0.55rem; }
+    .gp-section {
+      color: var(--green);
+      font-size: 0.6rem;
+      margin-top: 0.6rem;
+      margin-bottom: 0.3rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .gp-check {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.65rem;
+      color: var(--text-mid);
+      margin-bottom: 0.4rem;
+      cursor: pointer;
+    }
+    .gp-check input { accent-color: var(--cyan); }
+
     /* ===== KEYBOARD HELP OVERLAY ===== */
     .help-overlay {
       position: fixed;
@@ -791,9 +893,10 @@
     }
     .face-selector-grid {
       display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 2vw;
-      padding: 0 5vw;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 1.5vw;
+      padding: 0 4vw;
+      max-width: 900px;
     }
     .face-option {
       border: 2px solid var(--border);
@@ -1391,6 +1494,33 @@
     </div>
   </div>
 
+  <!-- Google Photos setup modal -->
+  <div class="gp-modal" id="gpModal">
+    <div class="gp-content">
+      <div class="gp-title" id="gpTitle">Google Photos</div>
+      <div id="gpSetupView">
+        <label class="gp-label">Client ID (de Google Cloud Console)</label>
+        <input type="text" class="gp-input" id="gpClientId" placeholder="123456-xxxxx.apps.googleusercontent.com">
+        <button class="gp-btn" id="gpConnectBtn">Conectar</button>
+        <button class="gp-btn" id="gpCloseBtn">Cerrar</button>
+        <div class="gp-status" id="gpStatus"></div>
+      </div>
+      <div id="gpAlbumView" style="display:none">
+        <div class="gp-section">Modos de fotos</div>
+        <label class="gp-check"><input type="checkbox" id="gpOnThisDay" checked> On This Day (fotos de hoy en anos anteriores)</label>
+        <label class="gp-check"><input type="checkbox" id="gpRecent"> Fotos recientes (ultimas 50)</label>
+        <div class="gp-section">Albums</div>
+        <div class="gp-albums" id="gpAlbumList">Cargando albums...</div>
+        <div style="margin-top:0.8rem">
+          <button class="gp-btn" id="gpSaveBtn">Guardar</button>
+          <button class="gp-btn danger" id="gpDisconnectBtn">Desconectar</button>
+          <button class="gp-btn" id="gpCloseBtn2">Cerrar</button>
+        </div>
+        <div class="gp-status" id="gpStatus2"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Keyboard help overlay -->
   <div class="help-overlay" id="helpOverlay">
     <div class="help-content">
@@ -1409,6 +1539,7 @@
       <div class="help-section">Info</div>
       <div class="help-row"><span class="help-key">?</span><span class="help-desc">Mostrar/ocultar esta ayuda</span></div>
       <div class="help-row"><span class="help-key">P</span><span class="help-desc">Toggle modo low-perf</span></div>
+      <div class="help-row"><span class="help-key">G</span><span class="help-desc">Google Photos (conectar/config)</span></div>
       <div class="help-close">Presiona cualquier tecla para cerrar</div>
     </div>
   </div>
@@ -2217,6 +2348,250 @@
       if (fn) fn.call(el);
     }
 
+    // ===== GOOGLE PHOTOS INTEGRATION =====
+    var GP = {
+      clientId: null,
+      accessToken: null,
+      tokenExpiry: 0,
+      tokenClient: null,
+      onThisDay: true,
+      recent: false,
+      selectedAlbumIds: [],
+      enabled: false,
+      photoUrls: []
+    };
+
+    function loadGPConfig() {
+      try {
+        var c = JSON.parse(localStorage.getItem('googlePhotos'));
+        if (c) {
+          GP.clientId = c.clientId || null;
+          GP.onThisDay = c.onThisDay !== false;
+          GP.recent = c.recent || false;
+          GP.selectedAlbumIds = c.selectedAlbumIds || [];
+          GP.enabled = c.enabled || false;
+        }
+      } catch(e) {}
+    }
+
+    function saveGPConfig() {
+      try {
+        localStorage.setItem('googlePhotos', JSON.stringify({
+          clientId: GP.clientId, onThisDay: GP.onThisDay, recent: GP.recent,
+          selectedAlbumIds: GP.selectedAlbumIds, enabled: GP.enabled
+        }));
+      } catch(e) {}
+    }
+
+    function initGooglePhotos() {
+      loadGPConfig();
+      if (!GP.clientId || !GP.enabled) return;
+      var script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.onload = function() {
+        GP.tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GP.clientId,
+          scope: 'https://www.googleapis.com/auth/photoslibrary.readonly',
+          callback: handleGPToken
+        });
+        GP.tokenClient.requestAccessToken({ prompt: '' });
+      };
+      document.head.appendChild(script);
+    }
+
+    function handleGPToken(resp) {
+      if (resp.error) { console.warn('GP auth:', resp.error); return; }
+      GP.accessToken = resp.access_token;
+      GP.tokenExpiry = Date.now() + (resp.expires_in * 1000);
+      GP.enabled = true;
+      saveGPConfig();
+      fetchGooglePhotos();
+      var refreshIn = Math.max((resp.expires_in - 300) * 1000, 60000);
+      setTimeout(function() {
+        if (GP.tokenClient) GP.tokenClient.requestAccessToken({ prompt: '' });
+      }, refreshIn);
+    }
+
+    async function gpFetch(url, body) {
+      if (!GP.accessToken) return null;
+      var opts = { headers: { 'Authorization': 'Bearer ' + GP.accessToken, 'Content-Type': 'application/json' } };
+      if (body) { opts.method = 'POST'; opts.body = JSON.stringify(body); }
+      var res = await fetch(url, opts);
+      if (!res.ok) return null;
+      return res.json();
+    }
+
+    async function fetchGooglePhotos() {
+      if (!GP.accessToken) return;
+      var urls = [];
+      // "On This Day"
+      if (GP.onThisDay) {
+        var today = new Date();
+        var data = await gpFetch('https://photoslibrary.googleapis.com/v1/mediaItems:search', {
+          pageSize: 50,
+          filters: { dateFilter: { dates: [{ month: today.getMonth() + 1, day: today.getDate() }] }, mediaTypeFilter: { mediaTypes: ['PHOTO'] } }
+        });
+        if (data && data.mediaItems) {
+          data.mediaItems.forEach(function(item) { urls.push(item.baseUrl + '=w1366-h768'); });
+        }
+      }
+      // Recent
+      if (GP.recent) {
+        var rd = await gpFetch('https://photoslibrary.googleapis.com/v1/mediaItems?pageSize=50');
+        if (rd && rd.mediaItems) {
+          rd.mediaItems.forEach(function(item) {
+            if (item.mimeType && item.mimeType.startsWith('image/')) urls.push(item.baseUrl + '=w1366-h768');
+          });
+        }
+      }
+      // Albums
+      for (var a = 0; a < GP.selectedAlbumIds.length; a++) {
+        var ad = await gpFetch('https://photoslibrary.googleapis.com/v1/mediaItems:search', {
+          albumId: GP.selectedAlbumIds[a], pageSize: 30
+        });
+        if (ad && ad.mediaItems) {
+          ad.mediaItems.forEach(function(item) {
+            if (!item.mimeType || item.mimeType.startsWith('image/')) urls.push(item.baseUrl + '=w1366-h768');
+          });
+        }
+      }
+      GP.photoUrls = urls;
+      mergeGooglePhotos();
+    }
+
+    function mergeGooglePhotos() {
+      if (GP.photoUrls.length === 0) return;
+      var localPhotos = photoUrls.filter(function(u) { return u.indexOf('googleusercontent') === -1; });
+      photoUrls = shuffleArray(localPhotos.concat(GP.photoUrls));
+    }
+
+    async function fetchGPAlbums() {
+      var albums = [];
+      var nextPageToken = null;
+      do {
+        var url = 'https://photoslibrary.googleapis.com/v1/albums?pageSize=50';
+        if (nextPageToken) url += '&pageToken=' + nextPageToken;
+        var data = await gpFetch(url);
+        if (data && data.albums) { albums = albums.concat(data.albums); nextPageToken = data.nextPageToken; }
+        else { nextPageToken = null; }
+      } while (nextPageToken);
+      return albums;
+    }
+
+    // ===== GP MODAL UI =====
+    function openGPModal() {
+      document.getElementById('gpModal').classList.add('visible');
+      loadGPConfig();
+      if (GP.enabled && GP.clientId && GP.accessToken) { showGPAlbumView(); }
+      else { showGPSetupView(); }
+    }
+
+    function closeGPModal() { document.getElementById('gpModal').classList.remove('visible'); }
+
+    function showGPSetupView() {
+      document.getElementById('gpSetupView').style.display = 'block';
+      document.getElementById('gpAlbumView').style.display = 'none';
+      document.getElementById('gpTitle').textContent = 'Google Photos — Setup';
+      if (GP.clientId) document.getElementById('gpClientId').value = GP.clientId;
+    }
+
+    function showGPAlbumView() {
+      document.getElementById('gpSetupView').style.display = 'none';
+      document.getElementById('gpAlbumView').style.display = 'block';
+      document.getElementById('gpTitle').textContent = 'Google Photos — ' + GP.photoUrls.length + ' fotos';
+      document.getElementById('gpOnThisDay').checked = GP.onThisDay;
+      document.getElementById('gpRecent').checked = GP.recent;
+      loadGPAlbumList();
+    }
+
+    async function loadGPAlbumList() {
+      var container = document.getElementById('gpAlbumList');
+      container.textContent = 'Cargando albums...';
+      if (!GP.accessToken) { container.textContent = 'No autenticado. Reconecta.'; return; }
+      var albums = await fetchGPAlbums();
+      if (albums.length === 0) { container.textContent = 'No se encontraron albums.'; return; }
+      container.textContent = '';
+      albums.forEach(function(album) {
+        var label = document.createElement('label');
+        label.className = 'gp-album';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.setAttribute('data-album-id', album.id);
+        cb.checked = GP.selectedAlbumIds.indexOf(album.id) !== -1;
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'gp-album-name';
+        nameSpan.textContent = album.title;
+        var countSpan = document.createElement('span');
+        countSpan.className = 'gp-album-count';
+        countSpan.textContent = '(' + (album.mediaItemsCount || 0) + ')';
+        label.appendChild(cb);
+        label.appendChild(nameSpan);
+        label.appendChild(countSpan);
+        container.appendChild(label);
+      });
+    }
+
+    function saveGPSettings() {
+      GP.onThisDay = document.getElementById('gpOnThisDay').checked;
+      GP.recent = document.getElementById('gpRecent').checked;
+      GP.selectedAlbumIds = [];
+      var checks = document.querySelectorAll('#gpAlbumList input[type=checkbox]:checked');
+      checks.forEach(function(cb) { GP.selectedAlbumIds.push(cb.getAttribute('data-album-id')); });
+      saveGPConfig();
+      fetchGooglePhotos();
+      var s = document.getElementById('gpStatus2');
+      s.textContent = 'Guardado. Cargando fotos...';
+      s.className = 'gp-status';
+      setTimeout(function() { s.textContent = GP.photoUrls.length + ' fotos de Google cargadas'; }, 3000);
+    }
+
+    function disconnectGP() {
+      GP.clientId = null; GP.accessToken = null; GP.enabled = false;
+      GP.photoUrls = []; GP.selectedAlbumIds = []; GP.tokenClient = null;
+      try { localStorage.removeItem('googlePhotos'); } catch(e) {}
+      photoUrls = photoUrls.filter(function(u) { return u.indexOf('googleusercontent') === -1; });
+      closeGPModal();
+    }
+
+    function wireGPModal() {
+      document.getElementById('gpConnectBtn').addEventListener('click', function() {
+        var clientId = document.getElementById('gpClientId').value.trim();
+        if (!clientId) return;
+        GP.clientId = clientId;
+        GP.enabled = true;
+        saveGPConfig();
+        var status = document.getElementById('gpStatus');
+        status.textContent = 'Cargando autenticacion...';
+        status.className = 'gp-status';
+        if (typeof google !== 'undefined' && google.accounts) { startGPAuth(); }
+        else {
+          var s = document.createElement('script');
+          s.src = 'https://accounts.google.com/gsi/client';
+          s.onload = startGPAuth;
+          s.onerror = function() { status.textContent = 'Error cargando GIS'; status.className = 'gp-status error'; };
+          document.head.appendChild(s);
+        }
+      });
+      document.getElementById('gpCloseBtn').addEventListener('click', closeGPModal);
+      document.getElementById('gpCloseBtn2').addEventListener('click', closeGPModal);
+      document.getElementById('gpSaveBtn').addEventListener('click', saveGPSettings);
+      document.getElementById('gpDisconnectBtn').addEventListener('click', disconnectGP);
+    }
+
+    function startGPAuth() {
+      GP.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: GP.clientId,
+        scope: 'https://www.googleapis.com/auth/photoslibrary.readonly',
+        callback: function(resp) {
+          handleGPToken(resp);
+          var status = document.getElementById('gpStatus');
+          if (!resp.error) { status.textContent = 'Conectado!'; showGPAlbumView(); }
+          else { status.textContent = 'Error: ' + resp.error; status.className = 'gp-status error'; }
+        }
+      });
+      GP.tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+
     // ===== PHOTO FRAME (portarretratos) =====
     var photoUrls = [];
     var photoIndex = 0;
@@ -2604,6 +2979,9 @@
 
     // ===== KEYBOARD CONTROLS (for non-touch devices) =====
     document.addEventListener('keydown', function(e) {
+      // Modals: Escape closes GP modal
+      var gpModalOpen = document.getElementById('gpModal').classList.contains('visible');
+      if (gpModalOpen) { if (e.key === 'Escape') closeGPModal(); return; }
       // Help overlay: any key closes it (except ? which toggles)
       if (helpOpen && e.key !== '?') { closeHelp(); return; }
 
@@ -2688,6 +3066,10 @@
         case 'p':
         case 'P':
           setLowPerf(!lowPerfEnabled);
+          break;
+        case 'g':
+        case 'G':
+          openGPModal();
           break;
         default:
           var faceNum = parseInt(e.key);
@@ -3010,6 +3392,8 @@
 
       // Load photos and start mode cycling
       await loadPhotoList();
+      wireGPModal();
+      initGooglePhotos();
       startModeCycle();
 
       // Load face from URL param or localStorage
