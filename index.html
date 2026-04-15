@@ -73,7 +73,7 @@
       height: 100%;
       display: grid;
       grid-template-columns: 1.4fr 1fr 1fr 1.5fr;
-      grid-template-rows: 1.1fr 0.9fr auto;
+      grid-template-rows: 1.1fr 0.9fr auto auto;
       gap: 2px;
       padding: 2px;
     }
@@ -86,9 +86,9 @@
     #widgetHumid { grid-row: 1; grid-column: 3; }
     #widgetCam { grid-row: 1; grid-column: 4; }
     /* Row 2: Wind | Astro | Pressure | AirQuality (UV hidden, merged into wind) */
-    #widgetWind { grid-row: 2; grid-column: 1; }
+    #widgetWind { grid-row: 2; grid-column: 2; }
     #widgetUV { display: none; }
-    #widgetAstro { grid-row: 2; grid-column: 2; }
+    #widgetAstro { grid-row: 2; grid-column: 1; }
     #widgetPressure {
       grid-row: 2; grid-column: 3;
       display: flex;
@@ -1215,7 +1215,7 @@
     /* ===== FACE: HP (optimized for 1366x768, no-touch desktop) ===== */
     body.face-hp .dashboard {
       grid-template-columns: 1.6fr 1fr 1fr 1.8fr;
-      grid-template-rows: 1.2fr 0.8fr auto;
+      grid-template-rows: 1.2fr 0.8fr auto auto;
       gap: 3px;
       padding: 3px;
     }
@@ -1232,6 +1232,128 @@
     body.face-hp .sub-info { font-size: 1.1vw; }
     body.face-hp #forecastRow { grid-template-columns: repeat(8, 1fr); }
     body.face-hp .source-indicator { font-size: 0.55rem; }
+
+    /* ===== MUNDIAL 2026 COUNTDOWN ===== */
+    #mundialRow {
+      grid-row: 4;
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 0.8vw;
+      padding: 0.2rem 0.65rem;
+      background: var(--bg-widget);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1vw;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .mundial-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.3vw;
+      color: #75AADB;
+      font-weight: 700;
+      font-size: 1.1vw;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .mundial-days {
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--cyan);
+      font-size: 1.4vw;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .mundial-sep {
+      color: var(--border);
+      margin: 0 0.1vw;
+      font-size: 1.2vw;
+    }
+    .mundial-matches {
+      display: flex;
+      gap: 1vw;
+      font-size: 0.95vw;
+      color: var(--text-mid);
+      flex-wrap: nowrap;
+    }
+    .mundial-match {
+      display: flex;
+      align-items: center;
+      gap: 0.25vw;
+      white-space: nowrap;
+    }
+    .mundial-match .arg {
+      color: #75AADB;
+      font-weight: 600;
+    }
+    .mundial-match .opp {
+      color: var(--text-light);
+      font-weight: 500;
+    }
+    .mundial-match .vs-text {
+      color: var(--text-dim);
+    }
+    .mundial-match .match-date {
+      color: var(--text-dim);
+      font-size: 0.85vw;
+    }
+    .mundial-match.next {
+      color: var(--text-light);
+    }
+    .mundial-match.next .arg {
+      color: var(--cyan);
+      text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+    }
+    .mundial-match.past {
+      opacity: 0.35;
+    }
+    body.face-fede #mundialRow { display: none; }
+    .match-phase {
+      font-size: 0.8vw;
+      color: var(--yellow);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Mundial in MINIMAL face */
+    .minimal-mundial {
+      margin-top: 2vh;
+      font-size: 2vw;
+      color: var(--text-dim);
+      text-align: center;
+    }
+    .minimal-mundial .mundial-num {
+      color: var(--cyan);
+      font-family: 'Share Tech Mono', monospace;
+      font-weight: 700;
+    }
+
+    /* Mundial in RETRO face */
+    .retro-mundial {
+      margin-top: 1.5vh;
+      font-size: 1.2vw;
+      color: #1a8a1a;
+      border-top: 1px solid #1a3a1a;
+      padding-top: 0.5vh;
+      position: relative;
+      z-index: 2;
+    }
+    .retro-mundial-hl { color: #33ff33; }
+
+    /* Mundial in FAMILY face */
+    .family-mundial {
+      font-size: 1.6vw;
+      color: rgba(255,255,255,0.35);
+      text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+      margin-top: 0.5vh;
+    }
+    .fam-mundial-num {
+      color: rgba(117,170,219,0.7);
+      font-family: 'Share Tech Mono', monospace;
+    }
 
     /* ===== BATTERY IN ALL FACES ===== */
     .face-battery {
@@ -1437,6 +1559,9 @@
     <!-- === FILA INFERIOR: PRONOSTICO HORARIO === -->
     <div class="row-bottom" id="forecastRow"></div>
 
+    <!-- === MUNDIAL 2026 COUNTDOWN === -->
+    <div id="mundialRow"></div>
+
   </div>
 
   <!-- FACE: MINIMAL -->
@@ -1448,6 +1573,7 @@
       <span class="minimal-temp" id="minimalTemp">--</span>
       <span class="minimal-condition" id="minimalCondition"></span>
     </div>
+    <div class="minimal-mundial" id="minimalMundial"></div>
   </div>
 
   <!-- FACE: SATELLITE -->
@@ -1473,6 +1599,7 @@
     <div class="retro-big" id="retroTime">--:--</div>
     <div class="retro-date" id="retroDate"></div>
     <div class="retro-grid" id="retroGrid"></div>
+    <div class="retro-mundial" id="retroMundial"></div>
     <div class="retro-prompt">root@weather:~$ <span class="retro-cursor"></span></div>
   </div>
 
@@ -1492,6 +1619,7 @@
       </div>
       <div class="family-bottom">
         <div class="family-details" id="familyDetails"></div>
+        <div class="family-mundial" id="familyMundial"></div>
       </div>
     </div>
   </div>
@@ -1714,6 +1842,108 @@
                      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
       document.getElementById('clockDate').textContent =
         dias[now.getDay()] + ' ' + now.getDate() + ' ' + meses[now.getMonth()] + ' ' + now.getFullYear();
+    }
+
+    // ===== MUNDIAL 2026 COUNTDOWN =====
+    var MUNDIAL_MATCHES = [
+      // Fase de Grupos — Grupo J (horarios ART, Buenos Aires)
+      { phase: 'Grupos', home: 'ARG', away: 'ALG', date: new Date(2026, 5, 16, 23, 0, 0), city: 'Kansas City' },
+      { phase: 'Grupos', home: 'ARG', away: 'AUT', date: new Date(2026, 5, 22, 15, 0, 0), city: 'Arlington' },
+      { phase: 'Grupos', home: 'JOR', away: 'ARG', date: new Date(2026, 5, 28, 0, 0, 0), city: 'Arlington' }
+      // ── Fase eliminatoria: descomentar y completar cuando se confirmen ──
+      // ,{ phase: '8vos', home: 'ARG', away: 'TBD', date: new Date(2026, 6, 1, 0, 0, 0), city: 'TBD' }
+      // ,{ phase: '4tos', home: 'ARG', away: 'TBD', date: new Date(2026, 6, 5, 0, 0, 0), city: 'TBD' }
+      // ,{ phase: 'Semi', home: 'ARG', away: 'TBD', date: new Date(2026, 6, 9, 0, 0, 0), city: 'TBD' }
+      // ,{ phase: 'Final', home: 'ARG', away: 'TBD', date: new Date(2026, 6, 19, 17, 0, 0), city: 'MetLife Stadium' }
+    ];
+    var WC_START = new Date(2026, 5, 11, 0, 0, 0);
+    var WC_END = new Date(2026, 6, 19, 23, 59, 59);
+    var MUNDIAL_IDS = ['mundialRow', 'minimalMundial', 'retroMundial', 'familyMundial'];
+
+    function updateMundialCountdown() {
+      var now = new Date();
+      if (now > WC_END) {
+        MUNDIAL_IDS.forEach(function(id) { var e = document.getElementById(id); if (e) e.style.display = 'none'; });
+        return;
+      }
+
+      var diff = WC_START - now;
+      var days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      var inProgress = days <= 0;
+
+      var nextMatch = null, nextIdx = -1;
+      for (var i = 0; i < MUNDIAL_MATCHES.length; i++) {
+        if (now < MUNDIAL_MATCHES[i].date) { nextMatch = MUNDIAL_MATCHES[i]; nextIdx = i; break; }
+      }
+
+      var diasArr = ['Dom','Lun','Mar','Mi\u00E9','Jue','Vie','S\u00E1b'];
+      var mesesArr = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      function fmtDate(m) {
+        return diasArr[m.date.getDay()] + ' ' + m.date.getDate() + ' ' + mesesArr[m.date.getMonth()] + ' ' + m.date.getHours() + 'h';
+      }
+
+      // === DASHBOARD ROW ===
+      var el = document.getElementById('mundialRow');
+      if (el) {
+        var countdownHtml = inProgress
+          ? '<div class="mundial-badge">\u26BD MUNDIAL 2026 \u00B7 EN CURSO</div><div class="mundial-sep">\u2503</div>'
+          : '<div class="mundial-badge">\u26BD MUNDIAL 2026</div><div class="mundial-days">' + days + ' d\u00EDas</div><div class="mundial-sep">\u2503</div>';
+
+        var matchesHtml = '<div class="mundial-matches">';
+        MUNDIAL_MATCHES.forEach(function(m, i) {
+          var isPast = now > m.date;
+          var isNext = i === nextIdx;
+          var cls = isPast ? 'mundial-match past' : (isNext ? 'mundial-match next' : 'mundial-match');
+          var phaseTag = m.phase !== 'Grupos' ? '<span class="match-phase">' + m.phase + '</span> ' : '';
+          var homeSpan = m.home === 'ARG' ? '<span class="arg">ARG</span>' : '<span class="opp">' + m.home + '</span>';
+          var awaySpan = m.away === 'ARG' ? '<span class="arg">ARG</span>' : '<span class="opp">' + m.away + '</span>';
+          matchesHtml += '<div class="' + cls + '">' + phaseTag +
+            homeSpan + ' <span class="vs-text">vs</span> ' + awaySpan +
+            ' <span class="match-date">\u00B7 ' + fmtDate(m) + '</span></div>';
+        });
+        matchesHtml += '</div>';
+        el.innerHTML = countdownHtml + matchesHtml;
+      }
+
+      // === MINIMAL FACE ===
+      var minEl = document.getElementById('minimalMundial');
+      if (minEl) {
+        if (nextMatch) {
+          var ph = nextMatch.phase !== 'Grupos' ? nextMatch.phase + ': ' : '';
+          var mHome = nextMatch.home === 'ARG' ? '<span class="mundial-num">ARG</span>' : nextMatch.home;
+          var mAway = nextMatch.away === 'ARG' ? '<span class="mundial-num">ARG</span>' : nextMatch.away;
+          minEl.innerHTML = '\u26BD ' + (inProgress ? 'EN CURSO' : '<span class="mundial-num">' + days + '</span> d\u00EDas') +
+            ' \u00B7 ' + ph + mHome + ' vs ' + mAway + ' \u00B7 ' + fmtDate(nextMatch);
+        } else {
+          minEl.innerHTML = '\u26BD MUNDIAL 2026 \u00B7 EN CURSO';
+        }
+      }
+
+      // === RETRO FACE ===
+      var retroEl = document.getElementById('retroMundial');
+      if (retroEl) {
+        if (nextMatch) {
+          var rPhase = nextMatch.phase !== 'Grupos' ? ' [' + nextMatch.phase.toUpperCase() + ']' : '';
+          retroEl.innerHTML = '> <span class="retro-mundial-hl">MUNDIAL_2026</span> // T-' +
+            (inProgress ? '0' : days) + '_DAYS // NEXT: ' +
+            nextMatch.home + '_vs_' + nextMatch.away + rPhase +
+            ' [' + nextMatch.date.getDate() + '-' + mesesArr[nextMatch.date.getMonth()].toUpperCase() + '-2026 ' +
+            String(nextMatch.date.getHours()).padStart(2, '0') + ':00]';
+        } else {
+          retroEl.innerHTML = '> <span class="retro-mundial-hl">MUNDIAL_2026</span> // IN_PROGRESS';
+        }
+      }
+
+      // === FAMILY FACE ===
+      var famEl = document.getElementById('familyMundial');
+      if (famEl) {
+        if (nextMatch) {
+          famEl.innerHTML = '\u26BD ' + (inProgress ? 'Mundial en curso' : 'Mundial en <span class="fam-mundial-num">' + days + '</span> d\u00EDas') +
+            ' \u00B7 ' + nextMatch.home + ' vs ' + nextMatch.away + ' \u00B7 ' + fmtDate(nextMatch);
+        } else {
+          famEl.innerHTML = '\u26BD MUNDIAL 2026';
+        }
+      }
     }
 
     // ===== DIA O NOCHE =====
@@ -3383,9 +3613,11 @@
       updateClock();
       updatePhotoClock();
       updateNightMode();
+      updateMundialCountdown();
       setInterval(updateClock, 1000);
       setInterval(updatePhotoClock, 30000);
       setInterval(updateNightMode, 60 * 1000);
+      setInterval(updateMundialCountdown, 60 * 1000);
 
       await fetchWeather();
       fetchAirQuality();
