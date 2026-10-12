@@ -1,0 +1,51 @@
+name: Update Agenda
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # cada 30 minutos
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-agenda
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci --prefix scripts
+
+      - name: Tests del parser
+        run: npm test --prefix scripts
+
+      - name: Generar agenda.json
+        env:
+          # URL .ics publica del calendario "Pantalla" (Settings > Secrets and variables > Actions)
+          AGENDA_ICAL_URL: ${{ secrets.AGENDA_ICAL_URL }}
+        run: node scripts/build-agenda.mjs
+
+      - name: Commit si cambio
+        run: |
+          if git diff --quiet -- agenda.json; then
+            echo "Sin cambios"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add agenda.json
+          git commit -m "chore: actualizar agenda"
+          git push

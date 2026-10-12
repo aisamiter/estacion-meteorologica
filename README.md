@@ -23,7 +23,22 @@ Dashboard meteorologico en tiempo real para Buenos Aires, corriendo en un Samsun
 - Pronostico horario 12h + pronostico 7 dias (alternan automaticamente)
 - Marcador pulsante de ubicacion sobre la imagen satelital
 - Wake Lock API para pantalla siempre encendida
+- Agenda: proximos eventos de un calendario de Google (ver seccion Agenda)
 - PWA: "Agregar a pantalla de inicio" para fullscreen sin barras
+
+## Agenda
+
+El panel de agenda muestra los proximos 4 eventos en la fila inferior. Se oculta solo si no hay eventos.
+
+**Importante:** el repo y el sitio son publicos, asi que usa un calendario **aparte** (ej. "Pantalla") con solo lo que quieras mostrar. No uses tu calendario personal.
+
+1. En Google Calendar crea el calendario "Pantalla" y cargale los eventos que quieras ver.
+2. Configuracion del calendario > "Permisos de acceso" > marcar "Hacer disponible públicamente".
+3. En "Integrar el calendario" copia la **URL publica en formato iCal** (termina en `.ics`).
+4. En GitHub: Settings > Secrets and variables > Actions > New repository secret, nombre `AGENDA_ICAL_URL`, pega la URL.
+5. Actions > "Update Agenda" > Run workflow (despues corre solo cada 30 minutos).
+
+La Action (`.github/workflows/update-agenda.yml`) corre `scripts/build-agenda.mjs`, que expande eventos recurrentes (14 dias hacia adelante) y escribe `agenda.json` solo si hubo cambios. Tests: `npm ci --prefix scripts && npm test --prefix scripts`.
 
 ## Stack
 
