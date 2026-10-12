@@ -1976,12 +1976,15 @@
         const res = await fetch('https://api.open-meteo.com/v1/forecast?' + params, { cache: 'no-store' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
+        // Si el service worker respondio desde cache, el dato es viejo: no lo hacemos pasar por fresco.
+        const cachedAt = parseInt(res.headers.get('X-SW-Cached-At'), 10);
+        const fromCache = !isNaN(cachedAt);
         state.weatherData = data;
-        state.lastFetch = new Date();
+        state.lastFetch = fromCache ? new Date(cachedAt) : new Date();
         updateAllWidgets(data);
         updateFaceData();
         checkAlerts(data);
-        setOnlineStatus(true);
+        setOnlineStatus(!fromCache);
       } catch (err) {
         console.error('Error fetching weather:', err);
         setOnlineStatus(false);
@@ -2091,7 +2094,7 @@
       renderCurrentForecastMode();
 
       // Timestamp
-      const now = new Date();
+      const now = state.lastFetch || new Date();
       document.getElementById('lastUpdate').textContent =
         'OK ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
       document.querySelector('.source-indicator').classList.remove('stale');
@@ -3601,8 +3604,17 @@
       } catch(e) { /* Battery API not supported */ }
     }
 
+    // ===== SERVICE WORKER (offline) =====
+    function registerServiceWorker() {
+      if (!('serviceWorker' in navigator)) return;
+      navigator.serviceWorker.register('sw.js').catch(function (err) {
+        console.warn('Service worker no registrado:', err);
+      });
+    }
+
     // ===== INIT =====
     async function init() {
+      registerServiceWorker();
       var prompt = document.getElementById('fullscreenPrompt');
       prompt.addEventListener('click', async function() {
         prompt.classList.add('hidden');
