@@ -23,6 +23,7 @@ Dashboard meteorologico en tiempo real para Buenos Aires, corriendo en un Samsun
 - Pronostico horario 12h + pronostico 7 dias (alternan automaticamente)
 - Marcador pulsante de ubicacion sobre la imagen satelital
 - Wake Lock API para pantalla siempre encendida
+- Modo offline (service worker): si se cae el WiFi sigue mostrando el ultimo clima, satelite y fotos, y avisa cuantos minutos tienen los datos
 - PWA: "Agregar a pantalla de inicio" para fullscreen sin barras
 
 ## Stack
