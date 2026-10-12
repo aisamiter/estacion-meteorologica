@@ -1,0 +1,12 @@
+{
+  "name": "estacion-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Scripts de la Action que genera agenda.json",
+  "dependencies": {
+    "node-ical": "^0.20.1"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

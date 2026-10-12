@@ -73,7 +73,7 @@
       height: 100%;
       display: grid;
       grid-template-columns: 1.4fr 1fr 1fr 1.5fr;
-      grid-template-rows: 1.1fr 0.9fr auto auto;
+      grid-template-rows: 1.1fr 0.9fr auto auto auto;
       gap: 2px;
       padding: 2px;
     }
@@ -1215,7 +1215,7 @@
     /* ===== FACE: HP (optimized for 1366x768, no-touch desktop) ===== */
     body.face-hp .dashboard {
       grid-template-columns: 1.6fr 1fr 1fr 1.8fr;
-      grid-template-rows: 1.2fr 0.8fr auto auto;
+      grid-template-rows: 1.2fr 0.8fr auto auto auto;
       gap: 3px;
       padding: 3px;
     }
@@ -1310,6 +1310,56 @@
       opacity: 0.35;
     }
     body.face-fede #mundialRow { display: none; }
+
+    /* ===== AGENDA (agenda.json, generada por la Action update-agenda) ===== */
+    #agendaRow {
+      grid-row: 5;
+      grid-column: 1 / -1;
+      display: none;
+      align-items: center;
+      gap: 1vw;
+      padding: 0.2rem 0.65rem;
+      background: var(--bg-widget);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1vw;
+      min-height: 0;
+      overflow: hidden;
+    }
+    #agendaRow.has-events { display: flex; }
+    body.face-fede #agendaRow { display: none; }
+    .agenda-badge {
+      color: var(--cyan);
+      font-weight: 700;
+      font-size: 1.25vw;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .agenda-events {
+      display: flex;
+      gap: 1.6vw;
+      font-size: 1.15vw;
+      color: var(--text-mid);
+      flex-wrap: nowrap;
+      min-width: 0;
+    }
+    .agenda-event {
+      display: flex;
+      align-items: baseline;
+      gap: 0.35vw;
+      white-space: nowrap;
+      min-width: 0;
+    }
+    .agenda-when { color: var(--text-dim); font-size: 1vw; }
+    .agenda-title {
+      color: var(--text-light);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 20vw;
+    }
+    .agenda-event.today .agenda-when { color: var(--cyan); }
     .match-phase {
       font-size: 0.8vw;
       color: var(--yellow);
@@ -1561,6 +1611,9 @@
 
     <!-- === MUNDIAL 2026 COUNTDOWN === -->
     <div id="mundialRow"></div>
+
+    <!-- === AGENDA === -->
+    <div id="agendaRow"></div>
 
   </div>
 
@@ -3604,6 +3657,92 @@
       } catch(e) { /* Battery API not supported */ }
     }
 
+
+    // ===== AGENDA =====
+    // agenda.json lo genera la Action update-agenda desde un calendario publico de Google.
+    var agendaEvents = [];
+    var AGENDA_MAX_SHOWN = 4;
+    var AGENDA_REFRESH_MS = 15 * 60 * 1000;
+
+    async function loadAgenda() {
+      try {
+        var res = await fetch('agenda.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var data = await res.json();
+        agendaEvents = Array.isArray(data.events) ? data.events : [];
+      } catch (e) {
+        // Se conserva la ultima agenda cargada; sin ninguna, el panel queda oculto.
+        console.warn('No se pudo cargar agenda.json:', e);
+      }
+      renderAgenda();
+    }
+
+    // Eventos de dia completo vienen como 'YYYY-MM-DD' (fecha local, sin hora).
+    function parseAgendaDate(value, allDay) {
+      if (allDay) {
+        var p = value.split('-');
+        return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+      }
+      return new Date(value);
+    }
+
+    function agendaDayLabel(date, now) {
+      var startOfDay = function(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); };
+      var diffDays = Math.round((startOfDay(date) - startOfDay(now)) / 86400000);
+      if (diffDays <= 0) return 'Hoy';
+      if (diffDays === 1) return 'Mañana';
+      var dias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+      var meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      return dias[date.getDay()] + ' ' + date.getDate() + (diffDays > 6 ? ' ' + meses[date.getMonth()] : '');
+    }
+
+    function renderAgenda() {
+      var row = document.getElementById('agendaRow');
+      if (!row) return;
+      var now = new Date();
+      var upcoming = [];
+      for (var i = 0; i < agendaEvents.length && upcoming.length < AGENDA_MAX_SHOWN; i++) {
+        var ev = agendaEvents[i];
+        if (!ev || !ev.start) continue;
+        var start = parseAgendaDate(ev.start, ev.allDay);
+        var end = ev.end ? parseAgendaDate(ev.end, ev.allDay) : start;
+        // Dia completo: 'end' es exclusivo, asi que el evento sigue vigente hasta esa fecha.
+        if (end > now || start > now) upcoming.push({ ev: ev, start: start });
+      }
+
+      row.textContent = '';
+      if (upcoming.length === 0) {
+        row.classList.remove('has-events');
+        return;
+      }
+
+      var badge = document.createElement('div');
+      badge.className = 'agenda-badge';
+      badge.textContent = '📅 Agenda';
+      var list = document.createElement('div');
+      list.className = 'agenda-events';
+
+      upcoming.forEach(function(item) {
+        var label = agendaDayLabel(item.start, now);
+        var when = label + (item.ev.allDay ? '' : ' ' + String(item.start.getHours()).padStart(2, '0') + ':' + String(item.start.getMinutes()).padStart(2, '0'));
+        var el = document.createElement('div');
+        el.className = 'agenda-event' + (label === 'Hoy' ? ' today' : '');
+        var whenEl = document.createElement('span');
+        whenEl.className = 'agenda-when';
+        whenEl.textContent = when;
+        var titleEl = document.createElement('span');
+        titleEl.className = 'agenda-title';
+        titleEl.textContent = item.ev.title || '(sin título)';
+        el.appendChild(whenEl);
+        el.appendChild(titleEl);
+        list.appendChild(el);
+      });
+
+      row.appendChild(badge);
+      row.appendChild(list);
+      row.classList.add('has-events');
+    }
+
     // ===== SERVICE WORKER (offline) =====
     function registerServiceWorker() {
       if (!('serviceWorker' in navigator)) return;
@@ -3630,7 +3769,10 @@
       setInterval(updatePhotoClock, 30000);
       setInterval(updateNightMode, 60 * 1000);
       setInterval(updateMundialCountdown, 60 * 1000);
+      setInterval(renderAgenda, 60 * 1000);
+      setInterval(loadAgenda, AGENDA_REFRESH_MS);
 
+      loadAgenda();
       await fetchWeather();
       fetchAirQuality();
       loadImage();
